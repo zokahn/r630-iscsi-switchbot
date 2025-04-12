@@ -1,0 +1,1927 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for Dell PowerEdge R630 OpenShift Multiboot System">
+      
+      
+        <meta name="author" content="Red Hat">
+      
+      
+      
+        <link rel="prev" href="../TRUENAS_AUTHENTICATION/">
+      
+      
+        <link rel="next" href="../ADMIN_HANDOFF/">
+      
+      
+      <link rel="icon" href="../assets/images/r630-iscsi-switchbot-new-logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
+    
+    
+      
+        <title>Troubleshooting - OpenShift Multiboot System</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/css/custom.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#openshift-multiboot-system-troubleshooting-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="OpenShift Multiboot System" class="md-header__button md-logo" aria-label="OpenShift Multiboot System" data-md-component="logo">
+      
+  <img src="../assets/images/r630-iscsi-switchbot-new-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            OpenShift Multiboot System
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/redhat/r630-iscsi-switchbot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../MULTIBOOT_IMPLEMENTATION/" class="md-tabs__link">
+          
+  
+  
+  Implementation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../TEST_PLAN/" class="md-tabs__link">
+          
+  
+  
+  Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../TRUENAS_AUTHENTICATION/" class="md-tabs__link">
+          
+  
+  
+  Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ENHANCEMENT_PLAN/" class="md-tabs__link">
+          
+  
+  
+  Future Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../PROJECT_COMPLETION/" class="md-tabs__link">
+          
+  
+  
+  Project Status
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="OpenShift Multiboot System" class="md-nav__button md-logo" aria-label="OpenShift Multiboot System" data-md-component="logo">
+      
+  <img src="../assets/images/r630-iscsi-switchbot-new-logo.png" alt="logo">
+
+    </a>
+    OpenShift Multiboot System
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/redhat/r630-iscsi-switchbot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Implementation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Implementation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MULTIBOOT_IMPLEMENTATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Multiboot
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../NETBOOT_IMPLEMENTATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Netboot
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../IMPLEMENTATION_SUMMARY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Implementation Summary
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Testing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../TEST_PLAN/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test Plan
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../TEST_RESULTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test Results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Documentation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRUENAS_AUTHENTICATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    TrueNAS Authentication
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of Contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#truenas-connectivity-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      TrueNAS Connectivity Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TrueNAS Connectivity Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-unable-to-connect-to-truenas-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Unable to connect to TrueNAS API
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-wrong-truenas-port-configured" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Wrong TrueNAS port configured
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iscsi-boot-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      iSCSI Boot Problems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="iSCSI Boot Problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-iscsi-targets-not-appearing-in-idrac" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: iSCSI targets not appearing in iDRAC
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-iscsi-boot-fails-with-no-boot-device-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: iSCSI boot fails with "No boot device found"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iso-boot-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      ISO Boot Problems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ISO Boot Problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-iso-not-available-or-accessible" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: ISO not available or accessible
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-iso-boot-starts-but-installation-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: ISO boot starts but installation fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#netboot-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Netboot Problems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Netboot Problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-netbootxyz-not-accessible" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: netboot.xyz not accessible
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-custom-menu-not-appearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Custom menu not appearing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-api-key-authentication-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: API key authentication fails
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-ssh-authentication-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: SSH authentication fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#script-execution-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Script Execution Errors
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Script Execution Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-python-script-fails-to-execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Python script fails to execute
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-finalize_deploymentsh-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: finalize_deployment.sh fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Support
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADMIN_HANDOFF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Admin Handoff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GITHUB_ACTIONS_USAGE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    GitHub Actions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OPENSHIFT_VALUES_SYSTEM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OpenShift Values System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECRETS_PROVIDER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Secrets Provider System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/redhat/r630-iscsi-switchbot/blob/master/frontend/public/brand-assets/BRAND-ASSET-GUIDELINES.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Brand Assets Guidelines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_8" id="__nav_4_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_8">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/truenas_auth.json.example" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    TrueNAS Auth Examples
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Future Development
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Future Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ENHANCEMENT_PLAN/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enhancement Plan
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Project Status
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Project Status
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../PROJECT_COMPLETION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Project Completion
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FINAL_REPORT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Final Report
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../FINAL_DEMO_PLAN/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Final Demo Plan
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of Contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#truenas-connectivity-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      TrueNAS Connectivity Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TrueNAS Connectivity Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-unable-to-connect-to-truenas-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Unable to connect to TrueNAS API
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-wrong-truenas-port-configured" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Wrong TrueNAS port configured
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iscsi-boot-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      iSCSI Boot Problems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="iSCSI Boot Problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-iscsi-targets-not-appearing-in-idrac" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: iSCSI targets not appearing in iDRAC
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-iscsi-boot-fails-with-no-boot-device-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: iSCSI boot fails with "No boot device found"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iso-boot-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      ISO Boot Problems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ISO Boot Problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-iso-not-available-or-accessible" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: ISO not available or accessible
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-iso-boot-starts-but-installation-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: ISO boot starts but installation fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#netboot-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Netboot Problems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Netboot Problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-netbootxyz-not-accessible" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: netboot.xyz not accessible
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-custom-menu-not-appearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Custom menu not appearing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-api-key-authentication-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: API key authentication fails
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-ssh-authentication-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: SSH authentication fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#script-execution-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Script Execution Errors
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Script Execution Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-python-script-fails-to-execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: Python script fails to execute
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-finalize_deploymentsh-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem: finalize_deployment.sh fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Support
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="openshift-multiboot-system-troubleshooting-guide">OpenShift Multiboot System - Troubleshooting Guide</h1>
+<p>This document provides solutions for common issues that might be encountered when using the OpenShift Multiboot System. </p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#truenas-connectivity-issues">TrueNAS Connectivity Issues</a></li>
+<li><a href="#iscsi-boot-problems">iSCSI Boot Problems</a></li>
+<li><a href="#iso-boot-problems">ISO Boot Problems</a></li>
+<li><a href="#netboot-problems">Netboot Problems</a></li>
+<li><a href="#authentication-issues">Authentication Issues</a></li>
+<li><a href="#script-execution-errors">Script Execution Errors</a></li>
+</ul>
+<h2 id="truenas-connectivity-issues">TrueNAS Connectivity Issues</h2>
+<h3 id="problem-unable-to-connect-to-truenas-api">Problem: Unable to connect to TrueNAS API</h3>
+<p><strong>Symptoms:</strong>
+- Error message: "Failed to connect to TrueNAS Scale: 401 Client Error: Unauthorized"
+- Authentication failures in scripts</p>
+<p><strong>Solutions:</strong>
+1. Verify TrueNAS is accessible at the configured IP address:
+   <div class="highlight"><pre><span></span><code>ping<span class="w"> </span><span class="m">192</span>.168.2.245
+</code></pre></div></p>
+<ol>
+<li>
+<p>Check if the TrueNAS web interface is accessible in a browser:
+   <div class="highlight"><pre><span></span><code>https://192.168.2.245:444
+</code></pre></div></p>
+</li>
+<li>
+<p>Verify API credentials:
+   <div class="highlight"><pre><span></span><code>./scripts/test_truenas_connection.py<span class="w"> </span>--host<span class="w"> </span><span class="m">192</span>.168.2.245<span class="w"> </span>--port<span class="w"> </span><span class="m">444</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Regenerate API key in TrueNAS:</p>
+</li>
+<li>Log in to TrueNAS UI</li>
+<li>Navigate to Credentials → API Keys</li>
+<li>
+<p>Delete and re-create the key for OpenShift Multiboot</p>
+</li>
+<li>
+<p>Update your configuration:
+   <div class="highlight"><pre><span></span><code>./scripts/truenas_wrapper.sh<span class="w">  </span><span class="c1"># Re-enter credentials</span>
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="problem-wrong-truenas-port-configured">Problem: Wrong TrueNAS port configured</h3>
+<p><strong>Symptoms:</strong>
+- Connection timeout or connection refused errors</p>
+<p><strong>Solutions:</strong>
+1. Verify the correct port in the TrueNAS web UI
+2. Update your configuration:
+   <div class="highlight"><pre><span></span><code>./scripts/truenas_wrapper.sh<span class="w">  </span><span class="c1"># Re-enter credentials with correct port</span>
+</code></pre></div>
+3. Use the port flag explicitly in commands:
+   <div class="highlight"><pre><span></span><code>./scripts/truenas_autodiscovery.py<span class="w"> </span>--host<span class="w"> </span><span class="m">192</span>.168.2.245<span class="w"> </span>--port<span class="w"> </span><span class="m">444</span>
+</code></pre></div></p>
+<h2 id="iscsi-boot-problems">iSCSI Boot Problems</h2>
+<h3 id="problem-iscsi-targets-not-appearing-in-idrac">Problem: iSCSI targets not appearing in iDRAC</h3>
+<p><strong>Symptoms:</strong>
+- Unable to boot from iSCSI 
+- iSCSI targets not visible in boot options</p>
+<p><strong>Solutions:</strong>
+1. Verify target exists and is properly configured:
+   <div class="highlight"><pre><span></span><code>./scripts/switch_openshift.py<span class="w"> </span>--server<span class="w"> </span><span class="m">192</span>.168.2.230<span class="w"> </span>--method<span class="w"> </span>iscsi<span class="w"> </span>--version<span class="w"> </span><span class="m">4</span>.18<span class="w"> </span>--check-only
+</code></pre></div></p>
+<ol>
+<li>Check TrueNAS iSCSI service status:</li>
+<li>Ensure the service is running in TrueNAS UI</li>
+<li>
+<p>Verify that allowed initiators include the server IQN or "ALL"</p>
+</li>
+<li>
+<p>Check network connectivity between server and TrueNAS:
+   <div class="highlight"><pre><span></span><code>ping<span class="w"> </span><span class="m">192</span>.168.2.245
+</code></pre></div></p>
+</li>
+<li>
+<p>Manually reconfigure iSCSI initiator in iDRAC:</p>
+</li>
+<li>Log in to iDRAC web UI</li>
+<li>Navigate to Storage → iSCSI Initiator</li>
+<li>Configure target using values from <code>iscsi_targets.json</code></li>
+</ol>
+<h3 id="problem-iscsi-boot-fails-with-no-boot-device-found">Problem: iSCSI boot fails with "No boot device found"</h3>
+<p><strong>Symptoms:</strong>
+- Server attempts to boot from iSCSI but fails
+- Error message "No boot device found" or similar</p>
+<p><strong>Solutions:</strong>
+1. Verify the zvol exists on TrueNAS and contains a bootable system
+2. Check if iSCSI extent is properly linked to the target
+3. Ensure boot order is correctly set in iDRAC
+4. Verify CHAP settings (if used) match between initiator and target</p>
+<h2 id="iso-boot-problems">ISO Boot Problems</h2>
+<h3 id="problem-iso-not-available-or-accessible">Problem: ISO not available or accessible</h3>
+<p><strong>Symptoms:</strong>
+- Warning messages about ISO not being accessible
+- Boot fails when attempting ISO boot</p>
+<p><strong>Solutions:</strong>
+1. Check if ISO exists in TrueNAS:
+   <div class="highlight"><pre><span></span><code>./scripts/switch_openshift.py<span class="w"> </span>--server<span class="w"> </span><span class="m">192</span>.168.2.230<span class="w"> </span>--method<span class="w"> </span>iso<span class="w"> </span>--version<span class="w"> </span><span class="m">4</span>.18<span class="w"> </span>--check-only
+</code></pre></div></p>
+<ol>
+<li>
+<p>Regenerate the ISO:
+   <div class="highlight"><pre><span></span><code>./scripts/generate_openshift_iso.py<span class="w"> </span>--version<span class="w"> </span><span class="m">4</span>.18<span class="w"> </span>--rendezvous-ip<span class="w"> </span><span class="m">192</span>.168.2.230
+</code></pre></div></p>
+</li>
+<li>
+<p>Verify NFS sharing is enabled in TrueNAS</p>
+</li>
+<li>
+<p>Check network connectivity and permissions</p>
+</li>
+</ol>
+<h3 id="problem-iso-boot-starts-but-installation-fails">Problem: ISO boot starts but installation fails</h3>
+<p><strong>Symptoms:</strong>
+- Boot begins but OpenShift installation fails
+- Error messages during installation process</p>
+<p><strong>Solutions:</strong>
+1. Check that rendezvous IP is correctly configured
+2. Verify pull secret is valid
+3. Ensure network settings in agent-config.yaml are correct
+4. Check logs during boot:
+   - Connect to the console via iDRAC
+   - Press tab during boot to see boot options
+   - Add <code>rd.break</code> to kernel parameters to examine initramfs</p>
+<h2 id="netboot-problems">Netboot Problems</h2>
+<h3 id="problem-netbootxyz-not-accessible">Problem: netboot.xyz not accessible</h3>
+<p><strong>Symptoms:</strong>
+- Warning about netboot.xyz not being accessible
+- Boot fails when attempting netboot</p>
+<p><strong>Solutions:</strong>
+1. Verify connectivity to netboot server:
+   <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-I<span class="w"> </span>https://netboot.omnisack.nl/ipxe/netboot.xyz.efi
+</code></pre></div></p>
+<ol>
+<li>
+<p>Set up a local netboot server if external service is unreliable</p>
+</li>
+<li>
+<p>Check iDRAC HTTP boot configuration:</p>
+</li>
+<li>Ensure HTTP boot is enabled in BIOS/UEFI</li>
+<li>Verify boot order includes HTTP boot</li>
+</ol>
+<h3 id="problem-custom-menu-not-appearing">Problem: Custom menu not appearing</h3>
+<p><strong>Symptoms:</strong>
+- Default netboot menu shown instead of custom OpenShift menu
+- Unable to select OpenShift versions</p>
+<p><strong>Solutions:</strong>
+1. Regenerate custom menu:
+   <div class="highlight"><pre><span></span><code>./scripts/setup_netboot.py<span class="w"> </span>--truenas-ip<span class="w"> </span><span class="m">192</span>.168.2.245
+</code></pre></div></p>
+<ol>
+<li>Verify custom menu URL is correctly set in switch_openshift.py</li>
+<li>Ensure the menu file is accessible via HTTP from the server</li>
+</ol>
+<h2 id="authentication-issues">Authentication Issues</h2>
+<h3 id="problem-api-key-authentication-fails">Problem: API key authentication fails</h3>
+<p><strong>Symptoms:</strong>
+- 401 Unauthorized errors
+- API requests failing</p>
+<p><strong>Solutions:</strong>
+1. Check API key permissions in TrueNAS
+2. Regenerate API key and update configuration
+3. Ensure API key is correctly formatted in auth.json</p>
+<h3 id="problem-ssh-authentication-fails">Problem: SSH authentication fails</h3>
+<p><strong>Symptoms:</strong>
+- SSH connection refused
+- Permission denied errors</p>
+<p><strong>Solutions:</strong>
+1. Verify SSH service is enabled on TrueNAS
+2. Check SSH key is correctly added to authorized_keys
+3. Ensure permissions are correct on SSH files</p>
+<h2 id="script-execution-errors">Script Execution Errors</h2>
+<h3 id="problem-python-script-fails-to-execute">Problem: Python script fails to execute</h3>
+<p><strong>Symptoms:</strong>
+- "Command not found" or permission errors
+- Script crashes with import errors</p>
+<p><strong>Solutions:</strong>
+1. Verify Python is installed:
+   <div class="highlight"><pre><span></span><code>python<span class="w"> </span>--version
+</code></pre></div></p>
+<ol>
+<li>
+<p>Install required dependencies:
+   <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>requests<span class="w"> </span>pathlib
+</code></pre></div></p>
+</li>
+<li>
+<p>Make scripts executable:
+   <div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>+x<span class="w"> </span>scripts/*.py
+</code></pre></div></p>
+</li>
+<li>
+<p>Check for syntax errors with linting:
+   <div class="highlight"><pre><span></span><code>flake8<span class="w"> </span>scripts/problematic_script.py
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="problem-finalize_deploymentsh-fails">Problem: finalize_deployment.sh fails</h3>
+<p><strong>Symptoms:</strong>
+- Deployment script stops with errors
+- Not all ISOs are generated</p>
+<p><strong>Solutions:</strong>
+1. Run with check-only first:
+   <div class="highlight"><pre><span></span><code>./scripts/finalize_deployment.sh<span class="w">  </span><span class="c1"># Choose &#39;y&#39; for check-only</span>
+</code></pre></div></p>
+<ol>
+<li>Resolve specific errors reported in the log</li>
+<li>Re-run individual components manually:
+   <div class="highlight"><pre><span></span><code>./scripts/generate_openshift_iso.py<span class="w"> </span>--version<span class="w"> </span><span class="m">4</span>.18<span class="w"> </span>--rendezvous-ip<span class="w"> </span><span class="m">192</span>.168.2.230
+./scripts/setup_netboot.py<span class="w"> </span>--truenas-ip<span class="w"> </span><span class="m">192</span>.168.2.245
+</code></pre></div></li>
+</ol>
+<h2 id="additional-support">Additional Support</h2>
+<p>If you encounter issues not covered in this guide:</p>
+<ol>
+<li>Check the log files:</li>
+<li>Script logs: <code>*.log</code> in the current directory</li>
+<li>System logs: <code>journalctl -u iscsi*</code> on the server</li>
+<li>
+<p>TrueNAS logs: Available in the TrueNAS UI under System → Advanced → Logs</p>
+</li>
+<li>
+<p>Review the output of test scripts:
+   <div class="highlight"><pre><span></span><code>./scripts/test_setup.sh
+</code></pre></div></p>
+</li>
+<li>
+<p>For urgent issues, contact the system administrator at <code>admin@example.com</code></p>
+</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../TRUENAS_AUTHENTICATION/" title="TrueNAS Authentication" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                TrueNAS Authentication
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../ADMIN_HANDOFF/" title="Admin Handoff" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Admin Handoff
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; 2025 Red Hat, Inc.
+          </div>
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      <div class="md-footer-logo">
+        <img src="assets/images/r630-iscsi-switchbot-new-logo.png" alt="R630 iSCSI SwitchBot Logo">
+      </div>
+      <div class="md-social">
+  
+</div>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>

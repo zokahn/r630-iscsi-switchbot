@@ -1,0 +1,63 @@
+/* Custom CSS for OpenShift Multiboot System Documentation */
+
+/* Enhance logo display in navigation */
+.md-header-nav__button.md-logo img {
+  width: 48px;
+  height: auto;
+}
+
+/* Animate the logo on hover with a subtle "switch" effect */
+.md-header-nav__button.md-logo:hover img {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+/* Red Hat accent colors */
+:root {
+  --md-primary-fg-color: #ee0000;
+  --md-primary-fg-color--light: #ff4444;
+  --md-primary-fg-color--dark: #cc0000;
+  --md-accent-fg-color: #0066cc;
+}
+
+/* Custom footer with logo */
+.md-footer-meta__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.md-footer-logo {
+  margin-bottom: 1rem;
+}
+
+.md-footer-logo img {
+  width: 40px;
+  height: auto;
+}
+
+/* Banner styling for landing page */
+.banner-image {
+  width: 100%;
+  margin-bottom: 2rem;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Logo styling for documentation pages */
+.doc-logo {
+  display: block;
+  margin: 0 auto 2rem auto;
+  max-width: 150px;
+  height: auto;
+}
+
+/* Red Hat typography */
+body {
+  font-family: "Red Hat Text", -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Red Hat Display", -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+  font-weight: 500;
+}
