@@ -177,6 +177,55 @@ Options include:
 - `--metadata`: Add custom metadata (can be specified multiple times)
 - `--mock-mode`: Test mode - don't connect to TrueNAS
 
+### Test Deployments
+
+Test deployments are used to validate the system with different input data sets. These deployments follow the same tracking structure but can be identified by specific metadata and naming conventions.
+
+#### Creating Test Deployments
+
+To create a test deployment:
+
+1. Generate a configuration using the test input data:
+   ```bash
+   ./scripts/generate_openshift_values.py \
+     --node-ip 192.168.2.90 \
+     --server-id 01 \
+     --cluster-name test-humpty \
+     --base-domain omnisack.nl \
+     --metadata deployment_type=test
+   ```
+
+2. Upload test artifacts with specific metadata:
+   ```bash
+   ./scripts/upload_deployment_artifacts.sh \
+     --server-id 01 \
+     --deployment-name test-humpty \
+     --log-file path/to/test_log.log \
+     --metadata version=4.18 \
+     --metadata status=TEST \
+     --metadata test_id=TDEPXXXX
+   ```
+
+#### Test Deployment Naming Convention
+
+Test deployments should follow a naming convention that clearly identifies them as tests:
+
+- Use `test-` prefix for cluster names
+- Add `TEST` to the status metadata
+- Include a `test_id` in the metadata to group related tests
+
+#### Tracking Test Results
+
+Test results should be tracked in two places:
+
+1. In the artifacts metadata on TrueNAS in the standard location: 
+   ```
+   /mnt/tank/deployment_artifacts/{server-id}/{deployment-id}/metadata/metadata.json
+   ```
+
+2. In a test results document that follows the format defined in `docs/TEST_PLAN.md`, 
+   which records test scenarios, outcomes, and any issues encountered.
+
 ### Accessing Deployment Information
 
 1. Via the web dashboard on TrueNAS: http://192.168.2.245/deployments/

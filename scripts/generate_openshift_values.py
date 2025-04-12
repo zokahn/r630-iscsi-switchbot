@@ -28,6 +28,37 @@ def validate_domain(domain):
         return False
     return True
 
+def validate_mac_address(mac):
+    """Validate MAC address format"""
+    import re
+    if not mac:
+        return True  # Empty is allowed
+    
+    # Format validation: xx:xx:xx:xx:xx:xx or xx-xx-xx-xx-xx-xx
+    pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+    return bool(re.match(pattern, mac))
+
+def parse_dns_record(record_str):
+    """Parse a DNS record string in format 'hostname:ip'"""
+    if not record_str or ':' not in record_str:
+        return None
+    
+    parts = record_str.split(':', 1)
+    if len(parts) != 2:
+        return None
+    
+    hostname, ip = parts
+    hostname = hostname.strip()
+    ip = ip.strip()
+    
+    if not hostname or not validate_ip_address(ip):
+        return None
+    
+    return {
+        "hostname": hostname,
+        "ip": ip
+    }
+
 def generate_values_file(args):
     """Generate the OpenShift installation values file"""
     
@@ -73,6 +104,48 @@ def generate_values_file(args):
     config['sno']['ingressVIP'] = args.ingress_vip
     config['sno']['domain'] = f"apps.{args.cluster_name}.{args.base_domain}"
     config['sno']['hostname'] = args.hostname
+    
+    # Add MAC address if provided
+    if args.mac_address:
+        config['sno']['macAddress'] = args.mac_address
+    
+    # Add installation disk if provided
+    if 'bootstrapInPlace' not in config:
+        config['bootstrapInPlace'] = {}
+    
+    config['bootstrapInPlace']['installationDisk'] = args.installation_disk or ''
+    
+    # Add DNS records if provided
+    if args.dns_records:
+        dns_records = []
+        for record_str in args.dns_records:
+            record = parse_dns_record(record_str)
+            if record:
+                dns_records.append(record)
+        
+        if dns_records:
+            config['sno']['dnsRecords'] = dns_records
+            
+    # Add default DNS records based on cluster name and domain if requested
+    if args.generate_default_dns_records:
+        default_records = [
+            {
+                "hostname": f"api.{args.cluster_name}.{args.base_domain}",
+                "ip": args.api_vip
+            },
+            {
+                "hostname": f"api-int.{args.cluster_name}.{args.base_domain}",
+                "ip": args.api_vip
+            },
+            {
+                "hostname": f"*.apps.{args.cluster_name}.{args.base_domain}",
+                "ip": args.ingress_vip
+            }
+        ]
+        
+        # Add default records if no DNS records exist yet
+        if 'dnsRecords' not in config['sno']:
+            config['sno']['dnsRecords'] = default_records
     
     # Add server ID and timestamp to metadata if provided
     if args.server_id:
@@ -130,6 +203,10 @@ def main():
     parser.add_argument("--output-dir", help="Output directory (default: config directory)")
     parser.add_argument("--server-id", help="Server identifier (e.g., 01, 02) for multi-server tracking")
     parser.add_argument("--timestamp", help="Deployment timestamp (default: current time, format: YYYYMMDDHHMMSS)")
+    parser.add_argument("--mac-address", help="MAC address for the primary interface (format: xx:xx:xx:xx:xx:xx)")
+    parser.add_argument("--installation-disk", default="/dev/sda", help="Installation disk device (default: /dev/sda)")
+    parser.add_argument("--dns-records", action="append", help="DNS records in format 'hostname:ip' (can be used multiple times)")
+    parser.add_argument("--generate-default-dns-records", action="store_true", help="Generate default DNS records based on cluster name and domain")
     
     args = parser.parse_args()
     
@@ -153,6 +230,12 @@ def main():
             print(f"Error: Could not calculate Ingress VIP from '{args.node_ip}'")
             return 1
     
+    # Validate MAC address if provided
+    if args.mac_address and not validate_mac_address(args.mac_address):
+        print(f"Error: Invalid MAC address format: '{args.mac_address}'")
+        print("MAC address should be in format: xx:xx:xx:xx:xx:xx or xx-xx-xx-xx-xx-xx")
+        return 1
+        
     success = generate_values_file(args)
     return 0 if success else 1
 

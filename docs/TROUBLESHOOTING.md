@@ -245,6 +245,129 @@ This document provides solutions for common issues that might be encountered whe
    ./scripts/setup_netboot.py --truenas-ip 192.168.2.245
    ```
 
+## Deployment Test Issues
+
+### Problem: Test deployment fails with incorrect DNS entries
+
+**Symptoms:**
+- OpenShift installation fails during DNS resolution
+- Error logs show unresolved hostnames
+
+**Solutions:**
+1. Verify that the DNS entries in your test data match the generated configuration:
+   ```bash
+   cat config/deployments/r630-XX/r630-XX-CLUSTER-TIMESTAMP.yaml
+   ```
+
+2. Ensure the DNS server (typically your gateway) is correctly configured to resolve the test domains:
+   ```bash
+   dig @192.168.2.254 api.test-cluster.domain
+   dig @192.168.2.254 *.apps.test-cluster.domain
+   ```
+
+3. For testing purposes, you can add temporary entries to your local hosts file:
+   ```bash
+   sudo sh -c 'echo "192.168.2.90 api.test-cluster.domain" >> /etc/hosts'
+   ```
+
+### Problem: MAC address configuration issues
+
+**Symptoms:**
+- DHCP does not assign the expected IP address
+- Server network interface not properly configured
+
+**Solutions:**
+1. Verify the MAC address in your test data matches the physical server:
+   ```bash
+   # On the server, check interfaces
+   ip link show
+   ```
+
+2. Check DHCP server configuration to ensure MAC address binding:
+   ```bash
+   # Example for checking dhcpd leases
+   cat /var/lib/dhcpd/dhcpd.leases | grep -A 6 "test-cluster"
+   ```
+
+3. Manually update the configuration with the correct MAC address:
+   ```bash
+   # Edit the generated config file
+   vim config/deployments/r630-XX/r630-XX-CLUSTER-TIMESTAMP.yaml
+   ```
+
+### Problem: Test data interpretation errors
+
+**Symptoms:**
+- Generated configuration doesn't match expected values
+- Input data format misunderstood by the script
+
+**Solutions:**
+1. Double-check the format of your test data:
+   ```
+   api.CLUSTER.DOMAIN       IP_ADDRESS
+   api-int.CLUSTER.DOMAIN   IP_ADDRESS
+   *.apps.CLUSTER.DOMAIN    IP_ADDRESS
+   ```
+
+2. Use the `--check-only` or dry-run flags when available to validate without making changes:
+   ```bash
+   ./scripts/generate_openshift_values.py --check-only [other options]
+   ```
+
+3. Review the test documentation in `docs/TEST_PLAN.md` for the correct format and expected values
+
+### Problem: Configuration validation failures
+
+**Symptoms:**
+- Validation script reports errors in configuration
+- Required fields missing or incorrectly formatted
+- Warning messages about best practices
+
+**Solutions:**
+1. Run the validation script with verbose output to see details:
+   ```bash
+   ./scripts/validate_openshift_config.sh --config config/deployments/r630-XX/r630-XX-CLUSTER-TIMESTAMP.yaml --verbose
+   ```
+
+2. Check for specific validation issues:
+   ```bash
+   # Validate only basic fields
+   ./scripts/validate_openshift_config.sh --config config/deployments/r630-XX/r630-XX-CLUSTER-TIMESTAMP.yaml --skip-installer --skip-policy
+   ```
+
+3. Fix common validation issues:
+   - Ensure `networkType: OVNKubernetes` is specified
+   - Set `platform: none` for SNO deployments
+   - Set `controlPlane.replicas: 1` for SNO
+   - Add MAC address in `sno.macAddress` field
+   - Add DNS records in `sno.dnsRecords` section
+   - Specify installation disk in `bootstrapInPlace.installationDisk`
+
+### Problem: Test deployment artifacts not properly tracked
+
+**Symptoms:**
+- Missing test logs or metadata
+- Incomplete deployment tracking
+
+**Solutions:**
+1. Make sure to include the `--metadata status=TEST` flag to properly mark test deployments:
+   ```bash
+   ./scripts/upload_deployment_artifacts.sh \
+     --server-id 01 \
+     --deployment-name test-cluster \
+     --metadata status=TEST
+   ```
+
+2. Verify the artifacts were uploaded to the correct location:
+   ```bash
+   ls -la /mnt/tank/deployment_artifacts/r630-01/r630-01-test-cluster-TIMESTAMP/
+   ```
+
+3. Run the test in mock mode first to validate the deployment tracking process:
+   ```bash
+   ./scripts/upload_deployment_artifacts.sh --mock-mode [other options]
+   ```
+
 ## Additional Support
 
 If you encounter issues not covered in this guide:

@@ -23,9 +23,11 @@ The Dell PowerEdge R630 OpenShift Multiboot System enables flexible deployment a
 - **Multiboot System**: Switch between multiple OpenShift versions
 - **Netboot Support**: Network boot capabilities for quick deployments
 - **TrueNAS Integration**: iSCSI storage provisioning and management
+- **Configuration Validation**: Automated validation of OpenShift configurations
 - **Secrets Management**: Secure handling of sensitive information
 - **GitHub Actions Workflows**: Automated CI/CD for deployment processes
 - **Multi-Server Deployment Tracking**: Management of deployments across multiple R630 servers
+- **Test Deployment Tools**: Streamlined testing with standardized input data
 
 ## Documentation
 
@@ -67,6 +69,41 @@ To use this system in your own environment:
   --server-id 01 \
   --deployment-name sno
 ```
+
+## Testing Deployments
+
+The system includes a testing framework for validating deployments with various network configurations:
+
+1. Prepare test input data in the standardized format:
+```
+api.cluster.domain          192.168.2.90
+api-int.cluster.domain      192.168.2.90
+*.apps.cluster.domain       192.168.2.90
+idrac ip                    192.168.2.230
+MAC (interface)             e4:43:4b:44:5b:10
+DHCP configuration          [details]
+gateway/DNS information     [details]
+```
+
+2. Run an integrated test with automatic validation:
+```bash
+./scripts/test_deployment.sh \
+  --name humpty \
+  --domain omnisack.nl \
+  --node-ip 192.168.2.90 \
+  --idrac-ip 192.168.2.230 \
+  --mac-address e4:43:4b:44:5b:10 \
+  --boot-method iscsi \
+  --test-type check-only
+```
+
+3. Validate configurations separately:
+```bash
+./scripts/validate_openshift_config.sh \
+  --config config/deployments/r630-01/r630-01-humpty-20250412223919.yaml
+```
+
+For detailed testing procedures, see [Test Plan](docs/TEST_PLAN.md).
 
 ## Learning and Inspiration
 

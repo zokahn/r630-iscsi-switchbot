@@ -169,6 +169,162 @@ After an OpenShift instance is installed:
 ./scripts/switch_openshift.py --server 192.168.2.230 --method iscsi --version 4.18
 ```
 
+## 6. Deployment Data Testing
+
+This section outlines the procedure for testing deployments using standardized input data sets. These tests validate the system's ability to correctly deploy using various network configurations.
+
+### 6.1 Standardized Input Data Format
+
+Input data for deployment tests should follow this format:
+
+```
+api.CLUSTER_NAME.DOMAIN               IP_ADDRESS
+api-int.CLUSTER_NAME.DOMAIN           IP_ADDRESS
+*.apps.CLUSTER_NAME.DOMAIN            IP_ADDRESS
+idrac ip                              IDRAC_IP
+MAC (INTERFACE)                       MAC_ADDRESS
+DHCP configuration                    [details]
+gateway/DNS information               [details]
+```
+
+Example:
+```
+api.humpty.omnisack.nl                192.168.2.90
+api-int.humpty.omnisack.nl            192.168.2.90
+*.apps.humpty.omnisack.nl             192.168.2.90
+idrac ip                              192.168.2.230
+MAC (eno2)                            e4:43:4b:44:5b:10
+DHCP - fixed on mac .90 - humpty hostname
+gateway 192.168.2.254, also dns
+```
+
+### 6.2 Deployment Test Procedure
+
+#### Step 1: Generate Configuration
+
+Create the OpenShift installation configuration file using the test data:
+
+```bash
+./scripts/generate_openshift_values.py \
+  --node-ip 192.168.2.90 \
+  --server-id 01 \
+  --cluster-name humpty \
+  --base-domain omnisack.nl \
+  --hostname humpty \
+  --api-vip 192.168.2.90 \
+  --ingress-vip 192.168.2.90
+```
+
+#### Step 2: Verify Configuration
+
+Examine the generated configuration file to ensure test data was correctly integrated:
+
+```bash
+# Path follows the pattern:
+cat config/deployments/r630-01/r630-01-humpty-TIMESTAMP.yaml
+```
+
+Key verification points:
+- DNS entries match the input data
+- MAC address and interface configuration are correct
+- Network settings align with provided data
+
+#### Step 3: Configure Boot Method
+
+Set up the server to boot using one of the available methods:
+
+```bash
+# For iSCSI boot:
+./scripts/switch_openshift.py --server 192.168.2.230 --method iscsi --version 4.18 --check-only
+
+# For ISO boot:
+./scripts/switch_openshift.py --server 192.168.2.230 --method iso --version 4.18 --check-only
+
+# For netboot:
+./scripts/switch_openshift.py --server 192.168.2.230 --method netboot --check-only
+```
+
+#### Step 4: Initiate Deployment (Optional)
+
+If performing actual deployment:
+
+```bash
+# Configure boot and reboot
+./scripts/switch_openshift.py --server 192.168.2.230 --method iscsi --version 4.18 --reboot
+```
+
+### 6.3 Test Results Tracking
+
+Document each deployment test in a standardized format:
+
+| Test Date | Cluster Name | DNS Domain | Node IP | iDRAC IP | Boot Method | Status | Notes |
+|-----------|--------------|------------|---------|----------|------------|--------|-------|
+| 2025-04-12 | humpty | omnisack.nl | 192.168.2.90 | 192.168.2.230 | iscsi | Success | Initial test deployment |
+
+### 6.4 Common Test Scenarios
+
+Test deployments with different network configurations:
+- Different node IPs, MAC addresses, and network interfaces
+- Various DNS domain settings
+- Different hostname configurations
+- All three boot methods (iSCSI, ISO, netboot)
+
+## 7. Configuration Validation
+
+The test plan includes validation of OpenShift configurations before deployment to catch issues early.
+
+### 7.1 Basic Configuration Validation
+
+```bash
+# Validate a configuration file with basic checks
+./scripts/validate_openshift_config.sh --config config/deployments/r630-01/r630-01-humpty-TIMESTAMP.yaml
+```
+
+Expected result:
+- Script should verify required fields are present
+- Should check that networking is properly configured
+- Should validate SNO-specific settings
+- Should report any errors or warnings
+
+### 7.2 Advanced Validation Techniques
+
+If available, additional validation methods can be used:
+
+```bash
+# Use the OpenShift installer for validation (if available)
+./scripts/validate_openshift_config.sh --config config/deployments/r630-01/r630-01-humpty-TIMESTAMP.yaml --skip-policy
+```
+
+```bash
+# Use OPA/Conftest for policy validation (if available)
+./scripts/validate_openshift_config.sh --config config/deployments/r630-01/r630-01-humpty-TIMESTAMP.yaml --skip-installer
+```
+
+Expected result:
+- More thorough validation of configuration
+- Policy-based checks for best practices
+- Verification against OpenShift installer requirements
+
+### 7.3 Automated Testing with Validation
+
+```bash
+# Run a full test with validation
+./scripts/test_deployment.sh \
+  --name test-cluster \
+  --domain example.com \
+  --node-ip 192.168.2.90 \
+  --idrac-ip 192.168.2.230 \
+  --mac-address e4:43:4b:44:5b:10 \
+  --boot-method iscsi \
+  --test-type check-only
+```
+
+Expected result:
+- Automated generation of configuration
+- Validation of the configuration
+- Boot method verification
+- Comprehensive test log
+
 ## Test Results Documentation
 
 Document test results with the following format:
@@ -189,3 +345,6 @@ Document test results with the following format:
 | 5.2    | ISO Boot Config | | |
 | 5.3    | iSCSI Boot Switch | | |
 | 5.4    | Netboot Boot Test | | |
+| 7.1    | Basic Config Validation | | |
+| 7.2    | Installer Validation | | |
+| 7.3    | Policy Validation | | |
