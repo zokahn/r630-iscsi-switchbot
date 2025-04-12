@@ -39,6 +39,13 @@ jobs:
           python -m pip install --upgrade pip --quiet
           pip install requests pyyaml --quiet
           
+      - name: Generate SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "r630-switchbot@github-actions"
+          echo "Generated SSH key:"
+          cat ~/.ssh/id_rsa.pub
+          
       - name: Generate OpenShift ISO
         env:
           OPENSHIFT_PULL_SECRET: ${{ secrets.OPENSHIFT_PULL_SECRET }}
@@ -46,6 +53,7 @@ jobs:
           python scripts/generate_openshift_iso.py \
             --version ${{ github.event.inputs.version }} \
             --rendezvous-ip ${{ github.event.inputs.rendezvous_ip }} \
+            --ssh-key ~/.ssh/id_rsa.pub \
             ${{ github.event.inputs.skip_upload == 'true' && '--skip-upload' || '' }}
             
       - name: Upload ISO to TrueNAS
