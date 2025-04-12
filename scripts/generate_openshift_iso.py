@@ -55,7 +55,12 @@ def download_openshift_installer(version, output_dir):
     arch = 'amd64'
     
     # Construct URL for the installer
-    url = f"https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{version_for_url}/openshift-install-{os_type}-{arch}.tar.gz"
+    if version == "stable":
+        # Use stable URL format
+        url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-{os_type}.tar.gz"
+    else:
+        # Try version-specific URL
+        url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{version_for_url}/openshift-install-{os_type}-{arch}.tar.gz"
     installer_tar = os.path.join(output_dir, "openshift-install.tar.gz")
     
     print(f"Downloading OpenShift installer version {version} from {url}")
