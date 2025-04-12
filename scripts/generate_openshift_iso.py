@@ -269,8 +269,17 @@ def main():
             rendezvous_ip = args.rendezvous_ip
         
         # Get SSH key if not provided
-        ssh_key = args.ssh_key
-        if not ssh_key:
+        ssh_key_path = args.ssh_key
+        if ssh_key_path:
+            # Read the SSH key file
+            if os.path.exists(ssh_key_path):
+                with open(ssh_key_path, 'r') as f:
+                    ssh_key = f.read().strip()
+            else:
+                print(f"Error: SSH key file not found at {ssh_key_path}")
+                return 1
+        else:
+            # Try default SSH key path
             default_key_path = os.path.expanduser("~/.ssh/id_rsa.pub")
             if os.path.exists(default_key_path):
                 with open(default_key_path, 'r') as f:
@@ -281,14 +290,22 @@ def main():
                 return 1
         
         # Get pull secret if not provided
-        pull_secret = args.pull_secret
-        if not pull_secret:
-            # Check for pull secret in ~/.openshift/pull-secret
-            pull_secret_path = os.path.expanduser("~/.openshift/pull-secret")
+        pull_secret_path = args.pull_secret
+        if pull_secret_path:
+            # Read the pull secret file
             if os.path.exists(pull_secret_path):
                 with open(pull_secret_path, 'r') as f:
                     pull_secret = f.read().strip()
-                print(f"Using pull secret found at {pull_secret_path}")
+            else:
+                print(f"Error: Pull secret file not found at {pull_secret_path}")
+                return 1
+        else:
+            # Check for pull secret in ~/.openshift/pull-secret
+            default_pull_secret_path = os.path.expanduser("~/.openshift/pull-secret")
+            if os.path.exists(default_pull_secret_path):
+                with open(default_pull_secret_path, 'r') as f:
+                    pull_secret = f.read().strip()
+                print(f"Using pull secret found at {default_pull_secret_path}")
             else:
                 print("Please enter your OpenShift pull secret (paste and press Enter, then Ctrl+D):")
                 pull_secret = sys.stdin.read().strip()
