@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/images/r630-iscsi-switchbot-new-logo.png" alt="R630 iSCSI SwitchBot Logo" width="150">
+</div>
+
 # TrueNAS Scale Authentication Guide
 
 This document explains the various methods for authenticating with TrueNAS Scale for administrative access, with a focus on the automation used in our OpenShift multiboot system.

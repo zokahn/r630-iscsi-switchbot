@@ -1,9 +1,12 @@
 site_name: OpenShift Multiboot System
 site_description: Documentation for Dell PowerEdge R630 OpenShift Multiboot System
+site_author: Red Hat
+copyright: "&copy; 2025 Red Hat, Inc."
+repo_url: https://github.com/redhat/r630-iscsi-switchbot
 theme:
   name: material
-  logo: assets/images/r630-iscsi-switchrobot-logo.png
-  favicon: assets/images/r630-iscsi-switchrobot-logo.png
+  logo: docs/assets/images/r630-iscsi-switchbot-new-logo.png
+  favicon: docs/assets/images/r630-iscsi-switchbot-new-logo.png
   palette:
     primary: red
     accent: orange
@@ -13,17 +16,21 @@ theme:
     - navigation.tabs
     - navigation.sections
     - content.code.copy
+  custom_dir: docs_mkdocs/docs/assets
+  
+extra_css:
+  - docs/assets/css/custom.css
 
 docs_dir: docs_mkdocs
 nav:
   - Home: README.md
   - Implementation:
-    - Multiboot: docs/MULTIBOOT_IMPLEMENTATION.md
-    - Netboot: docs/NETBOOT_IMPLEMENTATION.md
-    - Implementation Summary: docs/IMPLEMENTATION_SUMMARY.md
+    - Multiboot: MULTIBOOT_IMPLEMENTATION.md
+    - Netboot: NETBOOT_IMPLEMENTATION.md
+    - Implementation Summary: IMPLEMENTATION_SUMMARY.md
   - Testing:
-    - Test Plan: docs/TEST_PLAN.md
-    - Test Results: docs/TEST_RESULTS.md
+    - Test Plan: TEST_PLAN.md
+    - Test Results: TEST_RESULTS.md
   - Documentation:
     - TrueNAS Authentication: docs/TRUENAS_AUTHENTICATION.md
     - Troubleshooting: docs/TROUBLESHOOTING.md
@@ -31,13 +38,14 @@ nav:
     - GitHub Actions: docs/GITHUB_ACTIONS_USAGE.md
     - OpenShift Values System: docs/OPENSHIFT_VALUES_SYSTEM.md
     - Secrets Provider System: docs/SECRETS_PROVIDER.md
+    - Brand Assets Guidelines: https://github.com/redhat/r630-iscsi-switchbot/blob/master/frontend/public/brand-assets/BRAND-ASSET-GUIDELINES.md
     - Examples: 
       - TrueNAS Auth Examples: docs/examples/truenas_auth.json.example
   - Future Development:
-    - Enhancement Plan: docs/ENHANCEMENT_PLAN.md
+    - Enhancement Plan: ENHANCEMENT_PLAN.md
   - Project Status:
-    - Project Completion: docs/PROJECT_COMPLETION.md
-    - Final Report: docs/FINAL_REPORT.md
+    - Project Completion: PROJECT_COMPLETION.md
+    - Final Report: FINAL_REPORT.md
     - Final Demo Plan: docs/FINAL_DEMO_PLAN.md
 
 markdown_extensions:

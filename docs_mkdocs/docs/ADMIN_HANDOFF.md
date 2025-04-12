@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/images/r630-iscsi-switchbot-new-logo.png" alt="R630 iSCSI SwitchBot Logo" width="150">
+</div>
+
 # OpenShift Multiboot System - Administrator Handoff
 
 This document serves as a comprehensive handoff guide for system administrators who will be managing the OpenShift Multiboot System. It covers the system architecture, maintenance procedures, and operational responsibilities.

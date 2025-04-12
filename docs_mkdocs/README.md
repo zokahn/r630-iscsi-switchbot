@@ -1,6 +1,10 @@
-# r630-iscsi-switchrobot
-
-![r630-iscsi-switchrobot logo](assets/images/r630-iscsi-switchrobot-logo.png)
+<div align="center">
+  <img src="docs/assets/images/r630-iscsi-switchbot-banner.png" alt="R630 iSCSI SwitchBot Banner" width="100%">
+  
+  # OpenShift Multiboot System
+  
+  <img src="docs/assets/images/r630-iscsi-switchbot-new-logo.png" alt="R630 iSCSI SwitchBot Logo" width="250">
+</div>
 
 ## Overview
 

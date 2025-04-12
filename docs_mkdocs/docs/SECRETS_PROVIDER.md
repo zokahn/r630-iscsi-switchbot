@@ -1,6 +1,8 @@
-# Secrets Provider System
+<div align="center">
+  <img src="assets/images/r630-iscsi-switchbot-new-logo.png" alt="R630 iSCSI SwitchBot Logo" width="150">
+</div>
 
-![r630-iscsi-switchrobot logo](../assets/images/r630-iscsi-switchrobot-logo.png)
+# Secrets Provider System
 
 This document explains the secrets provider system that has been implemented to securely manage sensitive information in the OpenShift deployment process.
 
