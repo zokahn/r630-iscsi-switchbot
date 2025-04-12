@@ -68,7 +68,7 @@ jobs:
           echo "ISO uploaded to TrueNAS at http://${{ github.event.inputs.truenas_ip }}/openshift_isos/${{ github.event.inputs.version }}/agent.x86_64.iso"
           
       - name: Upload ISO as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: openshift-${{ github.event.inputs.version }}-iso
           path: ./agent.x86_64.iso
