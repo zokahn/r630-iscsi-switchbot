@@ -120,6 +120,17 @@ fi
 # Step 1: Generate OpenShift ISOs
 print_header "Step 1: Generate OpenShift ISOs"
 
+# Check for local GitHub runner status
+echo -e "${BLUE}Checking for local GitHub runner...${NC}"
+LOCAL_RUNNER_ACTIVE=false
+if pgrep -f "actions-runner" > /dev/null; then
+    echo -e "${GREEN}✓ Local x86_64 GitHub runner detected and active${NC}"
+    LOCAL_RUNNER_ACTIVE=true
+else
+    echo -e "${YELLOW}! No local GitHub runner detected. ISO generation will use GitHub-hosted runners.${NC}"
+    echo -e "${YELLOW}  This may be slower and subject to GitHub-hosted runner constraints.${NC}"
+fi
+
 # Verify GitHub CLI is installed
 if ! command -v gh &> /dev/null; then
     echo -e "${RED}GitHub CLI (gh) is not installed. Please install it first:${NC}"
@@ -246,8 +257,59 @@ run_command "Verifying netboot method" \
     "./scripts/switch_openshift.py --server $SERVER_IP --method netboot --check-only" \
     false
 
-# Step 4: Run final validation tests
-print_header "Step 4: Run Final Validation Tests"
+# Step 4: Run integration tests via GitHub Actions
+print_header "Step 4: Run Integration Tests"
+
+if [ "$CHECK_ONLY" == "true" ]; then
+    echo -e "${YELLOW}Check-only mode: Would trigger GitHub workflow for integration tests${NC}"
+else
+    echo -e "${GREEN}Triggering GitHub workflow for system integration tests...${NC}"
+    WORKFLOW_URL=$(gh workflow run test_integration.yml -R "$REPO_NAME" \
+        -f server_ip="$SERVER_IP" \
+        -f truenas_ip="$TRUENAS_IP" \
+        --json url -q .url)
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to trigger integration test workflow${NC}"
+        if ! confirm "Continue with deployment?"; then
+            echo "Deployment aborted by user"
+            exit 1
+        fi
+    else
+        echo -e "${GREEN}Integration test workflow triggered: $WORKFLOW_URL${NC}"
+        echo -e "${BLUE}Waiting for tests to complete...${NC}"
+        
+        # Get the run ID
+        RUN_ID=$(echo "$WORKFLOW_URL" | grep -o '[0-9]\+$')
+        
+        # Poll for workflow completion
+        while true; do
+            STATUS=$(gh run view "$RUN_ID" -R "$REPO_NAME" --json status -q .status)
+            
+            if [ "$STATUS" == "completed" ]; then
+                CONCLUSION=$(gh run view "$RUN_ID" -R "$REPO_NAME" --json conclusion -q .conclusion)
+                if [ "$CONCLUSION" == "success" ]; then
+                    echo -e "${GREEN}Integration tests completed successfully!${NC}"
+                    break
+                else
+                    echo -e "${RED}Integration tests failed with conclusion: $CONCLUSION${NC}"
+                    echo -e "${YELLOW}Review the workflow logs for details: $WORKFLOW_URL${NC}"
+                    if ! confirm "Continue with deployment?"; then
+                        echo "Deployment aborted by user"
+                        exit 1
+                    fi
+                    break
+                fi
+            fi
+            
+            echo -e "${BLUE}Still running... (current status: $STATUS)${NC}"
+            sleep 15
+        done
+    fi
+fi
+
+# Step 5: Run local validation tests
+print_header "Step 5: Run Local Validation Tests"
 run_command "Running test setup script" \
     "./scripts/test_setup.sh" \
     false

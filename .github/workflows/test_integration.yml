@@ -1,0 +1,56 @@
+name: Test Integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_ip:
+        description: 'Test server IP address'
+        required: true
+        default: '192.168.2.230'
+      truenas_ip:
+        description: 'TrueNAS server IP'
+        required: true
+        default: '192.168.2.245'
+        
+jobs:
+  test-integration:
+    name: Test System Integration
+    runs-on: self-hosted  # Use x86_64 local runner
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip --quiet
+          pip install requests pathlib --quiet
+          
+      - name: Check TrueNAS Connection
+        run: |
+          python scripts/test_truenas_connection.py --host ${{ github.event.inputs.truenas_ip }}
+          
+      - name: Check iSCSI Targets
+        run: |
+          python scripts/switch_openshift.py \
+            --server ${{ github.event.inputs.server_ip }} \
+            --method iscsi \
+            --version 4.18 \
+            --check-only
+            
+      - name: Check ISO Availability
+        run: |
+          python scripts/switch_openshift.py \
+            --server ${{ github.event.inputs.server_ip }} \
+            --method iso \
+            --version 4.18 \
+            --check-only
+            
+      - name: Check Multiple Devices
+        run: |
+          python scripts/fix_multiple_iscsi_devices.py --check-only
