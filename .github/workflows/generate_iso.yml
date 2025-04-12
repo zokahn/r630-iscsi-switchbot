@@ -23,16 +23,17 @@ on:
 jobs:
   generate-iso:
     name: Generate OpenShift Agent ISO
-    runs-on: self-hosted  # Use x86_64 local runner
+    runs-on: [self-hosted]  # Self-hosted runner
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.7'
+          python-version: '3.10'
+          cache: 'pip'
           
       - name: Install Dependencies
         run: |
