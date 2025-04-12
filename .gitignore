@@ -41,3 +41,7 @@ ENV/
 .Trashes
 ehthumbs.db
 Thumbs.db
+# Test deployment logs
+deployment_*.log
+validation_*.log
+set_network_properties.ini
