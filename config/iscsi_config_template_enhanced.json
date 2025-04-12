@@ -1,0 +1,30 @@
+{
+  "iSCSIBoot": {
+    "IPAddressType": "IPv4",
+    "InitiatorIPAddress": "0.0.0.0",
+    "InitiatorNetmask": "255.255.255.0",
+    "InitiatorDefaultGateway": "0.0.0.0",
+    "TargetInfoViaDHCP": false,
+    "IPMaskDNSViaDHCP": true,
+    
+    "PrimaryTargetName": "iqn.2005-10.org.freenas.ctl:iscsi.r630.boot",
+    "PrimaryTargetIPAddress": "192.168.2.245",
+    "PrimaryTargetTCPPort": 3260,
+    "PrimaryLUN": 1,
+    
+    "AuthenticationMethod": "None",
+    "CHAPUsername": "",
+    "CHAPSecret": "",
+    
+    "InitiatorNameSource": "ConfiguredViaAPI",
+    "InitiatorName": "iqn.2016-04.com.example:r630",
+    
+    "MultipleConnectionsEnabled": false,
+    "SecondaryTargetName": "",
+    "SecondaryTargetIPAddress": "",
+    "SecondaryTargetTCPPort": 3260,
+    "SecondaryLUN": 1,
+    "SecondaryUsername": "",
+    "SecondarySecret": ""
+  }
+}
