@@ -45,6 +45,17 @@ sno:
   ingressVIP: 192.168.2.232  # Virtual IP for the ingress controller
   domain: apps.example.com  # Domain for application routes
   hostname: sno  # Hostname for the single node
+  # Network interface configuration
+  interface: eno2  # Network interface name (e.g., eno1, eno2, eth0)
+  macAddress: ""  # MAC address for the interface, helpful for DHCP reservations
+  useDhcp: true  # Whether to use DHCP or static IP (true/false)
+  prefixLength: 24  # Subnet mask as prefix length (e.g., 24 for 255.255.255.0)
+  dnsServers:  # DNS servers for the node
+    - 192.168.2.254
+
+# Bootstrap-in-place configuration for installation disk
+bootstrapInPlace:
+  installationDisk: ""  # Path to disk for OpenShift installation (e.g., /dev/disk/by-id/scsi-SIBM-...)
   
 # Network configuration
 proxy:

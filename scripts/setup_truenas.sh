@@ -87,6 +87,35 @@ create_zvols() {
     echo -e "${GREEN}Zvols created successfully${NC}"
 }
 
+# Function to create deployment artifact storage
+create_artifact_storage() {
+    echo -e "${YELLOW}Creating deployment artifacts storage structure...${NC}"
+    
+    # Create main dataset for deployment artifacts
+    ARTIFACTS_PATH="$POOL_NAME/deployment_artifacts"
+    if ! dataset_exists "$ARTIFACTS_PATH"; then
+        zfs create "$ARTIFACTS_PATH"
+        echo -e "${GREEN}Created dataset $ARTIFACTS_PATH${NC}"
+    else
+        echo -e "${YELLOW}Dataset $ARTIFACTS_PATH already exists${NC}"
+    fi
+    
+    # Create sample server directories for different R630 servers
+    for server_id in "01" "02"; do
+        SERVER_PATH="$ARTIFACTS_PATH/r630-$server_id"
+        if ! dataset_exists "$SERVER_PATH"; then
+            zfs create "$SERVER_PATH"
+            echo -e "${GREEN}Created dataset $SERVER_PATH${NC}"
+        else
+            echo -e "${YELLOW}Dataset $SERVER_PATH already exists${NC}"
+        fi
+    done
+    
+    # Set appropriate permissions
+    chmod -R 755 "/mnt/$ARTIFACTS_PATH"
+    echo -e "${GREEN}Deployment artifacts storage created successfully${NC}"
+}
+
 # Function to configure iSCSI service
 configure_iscsi() {
     echo -e "${YELLOW}Configuring iSCSI service...${NC}"
@@ -198,6 +227,7 @@ main() {
     
     create_directory_structure
     create_zvols
+    create_artifact_storage
     configure_iscsi
     configure_http_access
     

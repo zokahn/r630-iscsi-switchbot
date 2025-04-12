@@ -7,6 +7,7 @@ import sys
 import yaml
 from pathlib import Path
 import ipaddress
+from datetime import datetime
 
 # Default paths and settings
 SCRIPT_DIR = Path(__file__).parent
@@ -73,13 +74,39 @@ def generate_values_file(args):
     config['sno']['domain'] = f"apps.{args.cluster_name}.{args.base_domain}"
     config['sno']['hostname'] = args.hostname
     
-    # Output file name
+    # Add server ID and timestamp to metadata if provided
+    if args.server_id:
+        if 'metadata' not in config:
+            config['metadata'] = {}
+        config['metadata']['server_id'] = args.server_id
+    
+    # Generate or use provided timestamp
+    timestamp = args.timestamp
+    if not timestamp:
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    config['metadata']['deployment_timestamp'] = timestamp
+    
+    # Determine output directory and file name
     output_dir = CONFIG_DIR
     if args.output_dir:
         output_dir = Path(args.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
     
-    output_file = output_dir / f"openshift_install_values_{args.cluster_name}.yaml"
+    # Create server-specific directory structure if server ID is provided
+    if args.server_id:
+        # Create deployments directory under the specified output directory
+        deployments_dir = output_dir / "deployments"
+        server_dir = deployments_dir / f"r630-{args.server_id}"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = server_dir
+        
+        # Create deployment ID for the filename
+        deployment_id = f"r630-{args.server_id}-{args.cluster_name}-{timestamp}"
+        output_file = output_dir / f"{deployment_id}.yaml"
+        print(f"Creating deployment configuration: {deployment_id}")
+    else:
+        # Use traditional naming if no server ID is provided (backward compatibility)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = output_dir / f"openshift_install_values_{args.cluster_name}.yaml"
     
     # Write to file
     try:
@@ -101,6 +128,8 @@ def main():
     parser.add_argument("--api-vip", help="Virtual IP for the API server (default: node_ip + 1)")
     parser.add_argument("--ingress-vip", help="Virtual IP for the ingress controller (default: node_ip + 2)")
     parser.add_argument("--output-dir", help="Output directory (default: config directory)")
+    parser.add_argument("--server-id", help="Server identifier (e.g., 01, 02) for multi-server tracking")
+    parser.add_argument("--timestamp", help="Deployment timestamp (default: current time, format: YYYYMMDDHHMMSS)")
     
     args = parser.parse_args()
     

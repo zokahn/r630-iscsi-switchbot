@@ -14,7 +14,10 @@ NC='\033[0m' # No Color
 TRUENAS_IP="192.168.2.245"
 SERVER_IP="192.168.2.230"
 OPENSHIFT_VERSIONS=("4.16" "4.17" "4.18")
-LOG_FILE="deployment_$(date +%Y%m%d_%H%M%S).log"
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+SERVER_ID=""
+DEPLOYMENT_NAME=""
+LOG_FILE="deployment_${TIMESTAMP}.log"
 
 # Function to print section headers
 print_header() {
@@ -109,11 +112,60 @@ if [[ $EUID -ne 0 && "$CHECK_ONLY" != "true" ]]; then
     fi
 fi
 
-# Ask to run in check-only mode
-CHECK_ONLY=false
-if confirm "Run in check-only mode (no actual changes)?"; then
-    CHECK_ONLY=true
-    echo -e "${YELLOW}Running in check-only mode. No changes will be made.${NC}"
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --server-id)
+        SERVER_ID="$2"
+        shift
+        shift
+        ;;
+        --deployment-name)
+        DEPLOYMENT_NAME="$2"
+        shift
+        shift
+        ;;
+        --values-file)
+        VALUES_FILE="$2"
+        shift
+        shift
+        ;;
+        --check-only)
+        CHECK_ONLY=true
+        shift
+        ;;
+        *)
+        # Unknown option
+        echo -e "${RED}Unknown option: $key${NC}"
+        exit 1
+        ;;
+    esac
+done
+
+# Create deployment identifier if server ID is provided
+if [ -n "$SERVER_ID" ]; then
+    if [ -z "$DEPLOYMENT_NAME" ]; then
+        DEPLOYMENT_NAME="sno"
+    fi
+    DEPLOYMENT_ID="r630-${SERVER_ID}-${DEPLOYMENT_NAME}-${TIMESTAMP}"
+    
+    # Update log file name with deployment ID
+    LOG_FILE="deployment_${DEPLOYMENT_ID}.log"
+    echo -e "${BLUE}Using deployment ID: ${DEPLOYMENT_ID}${NC}"
+    echo -e "${BLUE}Log file: ${LOG_FILE}${NC}"
+fi
+
+# Ask to run in check-only mode if not specified via command line
+if [ -z "$CHECK_ONLY" ]; then
+    CHECK_ONLY=false
+    if confirm "Run in check-only mode (no actual changes)?"; then
+        CHECK_ONLY=true
+        echo -e "${YELLOW}Running in check-only mode. No changes will be made.${NC}"
+        echo "Running in check-only mode" >> "$LOG_FILE"
+    fi
+else
+    echo -e "${YELLOW}Running in check-only mode (specified via command line). No changes will be made.${NC}"
     echo "Running in check-only mode" >> "$LOG_FILE"
 fi
 
@@ -164,11 +216,35 @@ for VERSION in "${OPENSHIFT_VERSIONS[@]}"; do
     fi
 
     echo -e "${GREEN}Triggering GitHub workflow to generate OpenShift $VERSION ISO...${NC}"
-    WORKFLOW_URL=$(gh workflow run generate_iso.yml -R "$REPO_NAME" \
-        -f version="$VERSION" \
-        -f rendezvous_ip="$SERVER_IP" \
-        -f truenas_ip="$TRUENAS_IP" \
-        --json url -q .url)
+    
+    # Base workflow parameters
+    WORKFLOW_PARAMS=(
+        "-f" "version=$VERSION"
+        "-f" "rendezvous_ip=$SERVER_IP"
+        "-f" "truenas_ip=$TRUENAS_IP"
+    )
+    
+    # Add deployment tracking parameters if server ID is provided
+    if [ -n "$SERVER_ID" ]; then
+        WORKFLOW_PARAMS+=(
+            "-f" "server_id=$SERVER_ID"
+            "-f" "timestamp=$TIMESTAMP"
+        )
+        
+        if [ -n "$DEPLOYMENT_NAME" ]; then
+            WORKFLOW_PARAMS+=("-f" "deployment_name=$DEPLOYMENT_NAME")
+        fi
+        
+        # If values file was provided
+        if [ -n "$VALUES_FILE" ]; then
+            WORKFLOW_PARAMS+=("-f" "values_file=$VALUES_FILE")
+        fi
+        
+        echo -e "${BLUE}Using deployment tracking with ID: ${DEPLOYMENT_ID}${NC}"
+    fi
+    
+    # Run the workflow with all parameters
+    WORKFLOW_URL=$(gh workflow run generate_iso.yml -R "$REPO_NAME" "${WORKFLOW_PARAMS[@]}" --json url -q .url)
     
     if [ $? -ne 0 ]; then
         echo -e "${RED}Failed to trigger workflow for OpenShift $VERSION${NC}"
@@ -264,10 +340,29 @@ if [ "$CHECK_ONLY" == "true" ]; then
     echo -e "${YELLOW}Check-only mode: Would trigger GitHub workflow for integration tests${NC}"
 else
     echo -e "${GREEN}Triggering GitHub workflow for system integration tests...${NC}"
-    WORKFLOW_URL=$(gh workflow run test_integration.yml -R "$REPO_NAME" \
-        -f server_ip="$SERVER_IP" \
-        -f truenas_ip="$TRUENAS_IP" \
-        --json url -q .url)
+    
+    # Base integration test workflow parameters
+    WORKFLOW_PARAMS=(
+        "-f" "server_ip=$SERVER_IP"
+        "-f" "truenas_ip=$TRUENAS_IP"
+    )
+    
+    # Add deployment tracking parameters if server ID is provided
+    if [ -n "$SERVER_ID" ]; then
+        WORKFLOW_PARAMS+=(
+            "-f" "server_id=$SERVER_ID"
+            "-f" "timestamp=$TIMESTAMP"
+        )
+        
+        if [ -n "$DEPLOYMENT_NAME" ]; then
+            WORKFLOW_PARAMS+=("-f" "deployment_name=$DEPLOYMENT_NAME")
+        fi
+        
+        echo -e "${BLUE}Using deployment tracking with ID: ${DEPLOYMENT_ID}${NC}"
+    fi
+    
+    # Run the workflow with all parameters
+    WORKFLOW_URL=$(gh workflow run test_integration.yml -R "$REPO_NAME" "${WORKFLOW_PARAMS[@]}" --json url -q .url)
     
     if [ $? -ne 0 ]; then
         echo -e "${RED}Failed to trigger integration test workflow${NC}"
@@ -348,3 +443,50 @@ if [ $FAILURES -gt 0 ]; then
 fi
 
 echo -e "\nLog file has been saved to: $LOG_FILE"
+
+# Upload deployment artifacts to TrueNAS if server ID is provided
+if [ -n "$SERVER_ID" ] && [ "$CHECK_ONLY" != "true" ]; then
+    print_header "Uploading Deployment Artifacts to TrueNAS"
+    
+    # Prepare artifact upload parameters
+    ARTIFACT_PARAMS=(
+        "--server-id" "$SERVER_ID"
+        "--log-file" "$LOG_FILE"
+        "--truenas-ip" "$TRUENAS_IP"
+    )
+    
+    # Add deployment name if provided
+    if [ -n "$DEPLOYMENT_NAME" ]; then
+        ARTIFACT_PARAMS+=("--deployment-name" "$DEPLOYMENT_NAME")
+    fi
+    
+    # Add timestamp
+    ARTIFACT_PARAMS+=("--timestamp" "$TIMESTAMP")
+    
+    # Add any kubeconfig file if found (assuming standard OpenShift location)
+    KUBECONFIG_DIR="./auth"
+    if [ -f "${KUBECONFIG_DIR}/kubeconfig" ]; then
+        ARTIFACT_PARAMS+=("--kubeconfig" "${KUBECONFIG_DIR}/kubeconfig")
+    fi
+    
+    # Add custom metadata
+    ARTIFACT_PARAMS+=(
+        "--metadata" "openshift_version=${VERSION:-unknown}"
+        "--metadata" "status=${COMPLETION_STATUS}"
+    )
+    
+    if [ $FAILURES -gt 0 ]; then
+        ARTIFACT_PARAMS+=("--metadata" "failures=${FAILURES}")
+    fi
+    
+    # Execute the upload command
+    run_command "Uploading deployment artifacts to TrueNAS" \
+        "./scripts/upload_deployment_artifacts.sh ${ARTIFACT_PARAMS[*]}" \
+        false
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Successfully uploaded deployment artifacts to TrueNAS${NC}"
+    else
+        echo -e "${RED}Failed to upload deployment artifacts${NC}"
+    fi
+fi

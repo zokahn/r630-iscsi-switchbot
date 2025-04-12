@@ -1,7 +1,7 @@
 site_name: OpenShift Multiboot System
 site_description: Documentation for Dell PowerEdge R630 OpenShift Multiboot System
-site_author: Red Hat
-copyright: "&copy; 2025 Red Hat, Inc."
+site_author: Bart van den Heuvel
+copyright: "&copy; 2025 Bart van den Heuvel - Omnisack Sandbox Project"
 repo_url: https://github.com/redhat/r630-iscsi-switchbot
 theme:
   name: material
@@ -37,6 +37,7 @@ nav:
     - Admin Handoff: docs/ADMIN_HANDOFF.md
     - GitHub Actions: docs/GITHUB_ACTIONS_USAGE.md
     - OpenShift Values System: docs/OPENSHIFT_VALUES_SYSTEM.md
+    - Deployment Tracking: docs/DEPLOYMENT_TRACKING.md
     - Secrets Provider System: docs/SECRETS_PROVIDER.md
     - Brand Assets Guidelines: https://github.com/redhat/r630-iscsi-switchbot/blob/master/frontend/public/brand-assets/BRAND-ASSET-GUIDELINES.md
     - Examples: 

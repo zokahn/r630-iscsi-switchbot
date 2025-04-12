@@ -125,11 +125,110 @@ sshKey: '{ssh_key}'
     print(f"Created install-config.yaml for OpenShift {version}")
     return True
 
-def create_agent_config(output_dir, rendezvous_ip):
-    """Create the agent-config.yaml file"""
+def create_agent_config(output_dir, values=None, rendezvous_ip=None):
+    """Create the agent-config.yaml file using values from config or command line"""
     agent_config_path = os.path.join(output_dir, "agent-config.yaml")
     
-    content = f"""apiVersion: v1alpha1
+    # If values are provided, use them; otherwise use basic parameters
+    if values:
+        # Extract basic cluster info
+        cluster_name = values.get('metadata', {}).get('name', 'r630-cluster')
+        
+        # Extract network configuration from SNO section if available
+        sno_config = values.get('sno', {})
+        node_ip = sno_config.get('nodeIP', rendezvous_ip)
+        
+        # Set network interface details - default to eno2 as per environment
+        interface_name = sno_config.get('interface', 'eno2')
+        mac_address = sno_config.get('macAddress', None)
+        
+        # Determine if using DHCP or static IP
+        use_dhcp = sno_config.get('useDhcp', True)
+        prefix_length = sno_config.get('prefixLength', 24)
+        
+        # Network infrastructure details
+        dns_servers = sno_config.get('dnsServers', None)
+        
+        # SNO hostname
+        hostname = sno_config.get('hostname', 'r630-control-1')
+        
+        # Storage configuration for bootstrap-in-place
+        bootstrap_in_place = values.get('bootstrapInPlace', {})
+        installation_disk = bootstrap_in_place.get('installationDisk', None)
+        
+        # Build network configuration based on values
+        network_config = {
+            "interfaces": [
+                {
+                    "name": interface_name,
+                    "type": "ethernet",
+                    "state": "up",
+                    "ipv4": {
+                        "enabled": True,
+                        "dhcp": use_dhcp
+                    }
+                }
+            ]
+        }
+        
+        # Add MAC address if specified
+        if mac_address:
+            network_config["interfaces"][0]["mac-address"] = mac_address
+        
+        # If static IP (not DHCP), add IP configuration
+        if not use_dhcp and node_ip:
+            network_config["interfaces"][0]["ipv4"]["address"] = [
+                {
+                    "ip": node_ip,
+                    "prefix-length": prefix_length
+                }
+            ]
+        
+        # Add DNS configuration if provided
+        if dns_servers:
+            network_config["dns-resolver"] = {
+                "config": {
+                    "server": dns_servers
+                }
+            }
+        
+        # Format network config as YAML with proper indentation
+        network_config_yaml = yaml.dump(network_config, default_flow_style=False, indent=6)
+        
+        # Build the complete agent-config content
+        content = f"""apiVersion: v1alpha1
+kind: AgentConfig
+metadata:
+  name: {cluster_name}
+rendezvousIP: {node_ip}
+hosts:
+  - hostname: {hostname}
+    role: master"""
+
+        # Add rootDeviceHints if installation disk is specified
+        if installation_disk:
+            content += f"""
+    rootDeviceHints:
+      deviceName: "{installation_disk}" """
+        
+        # Add network configuration
+        content += f"""
+    networkConfig: 
+{network_config_yaml}"""
+
+        # Add bootstrapInPlace configuration if installation disk is specified
+        if installation_disk:
+            content += f"""
+bootstrapInPlace:
+  installationDisk: "{installation_disk}" """
+        
+    else:
+        # Basic config if no values provided (fallback for backward compatibility)
+        if not rendezvous_ip:
+            print("Error: No rendezvous IP provided and no values file specified")
+            return False
+            
+        content = f"""apiVersion: v1alpha1
 kind: AgentConfig
 metadata:
   name: r630-cluster
@@ -153,7 +252,7 @@ hosts:
     with open(agent_config_path, 'w') as f:
         f.write(content)
     
-    print(f"Created agent-config.yaml with rendezvous IP {rendezvous_ip}")
+    print(f"Created agent-config.yaml with rendezvous IP {rendezvous_ip or node_ip}")
     return True
 
 def generate_iso(output_dir, version):
@@ -354,14 +453,14 @@ def main():
                 
             print(f"Created install-config.yaml from values file for OpenShift {args.version}")
             
-            # Create agent config
-            create_agent_config(output_dir, rendezvous_ip)
+            # Create agent config using values
+            create_agent_config(output_dir, values_copy, rendezvous_ip)
         else:
             # Create configurations from command line arguments
             if not create_install_config(output_dir, args.version, domain, pull_secret, ssh_key):
                 return 1
             
-            if not create_agent_config(output_dir, args.rendezvous_ip):
+            if not create_agent_config(output_dir, None, args.rendezvous_ip):
                 return 1
         
         # Generate the ISO

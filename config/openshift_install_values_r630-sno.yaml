@@ -32,7 +32,14 @@ sno:
   apiVIP: 192.168.2.231
   ingressVIP: 192.168.2.232
   domain: apps.r630-sno.intranet.lab
-  hostname: sno
+  hostname: humpty
+  interface: eno2
+  macAddress: e4:43:4b:44:5b:10
+  useDhcp: true
+  dnsServers:
+    - 192.168.2.254
+bootstrapInPlace:
+  installationDisk: "/dev/disk/by-id/scsi-SIBM-207x_ST600MM0088_W420JEKL0000E7428HZB"
 proxy:
   enabled: false
   httpProxy: ''
