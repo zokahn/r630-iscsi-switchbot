@@ -100,9 +100,28 @@ done
 TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 LOG_FILE="deployment_test_${CLUSTER_NAME}_${TIMESTAMP}.log"
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 # Echo to both console and log file
 log() {
     echo "$@" | tee -a "$LOG_FILE"
+}
+
+log_success() {
+    echo -e "${GREEN}✓ $@${NC}" | tee -a "$LOG_FILE"
+}
+
+log_error() {
+    echo -e "${RED}✗ $@${NC}" | tee -a "$LOG_FILE"
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠ $@${NC}" | tee -a "$LOG_FILE"
 }
 
 log "--- OpenShift Multiboot System Test Deployment Log ---"
@@ -142,10 +161,25 @@ CMD="${CMD} --installation-disk /dev/sda"
 CMD="${CMD} --generate-default-dns-records"
 
 log "Running command: ${CMD}"
-eval $CMD 2>&1 | tee -a "$LOG_FILE"
+if ! eval $CMD 2>&1 | tee -a "$LOG_FILE"; then
+    log_error "Configuration generation failed. See the output above for details."
+    log "Test failed at: $(date +"%Y-%m-%d %H:%M:%S")"
+    log "Results saved to: ${LOG_FILE}"
+    echo ""
+    echo "⛔ Test failed. Log file saved to: ${LOG_FILE}"
+    exit 1
+fi
 
 # Get the generated config file
 CONFIG_FILE=$(find config/deployments/r630-${SERVER_ID}/ -name "r630-${SERVER_ID}-${CLUSTER_NAME}-*.yaml" | sort -r | head -n 1)
+if [ -z "$CONFIG_FILE" ]; then
+    log_error "Could not find generated configuration file."
+    log "Test failed at: $(date +"%Y-%m-%d %H:%M:%S")"
+    log "Results saved to: ${LOG_FILE}"
+    echo ""
+    echo "⛔ Test failed. Log file saved to: ${LOG_FILE}"
+    exit 1
+fi
 log "Generated configuration file: ${CONFIG_FILE}"
 log ""
 
@@ -158,11 +192,11 @@ fi
 
 log "Running command: ${CMD}"
 if eval $CMD 2>&1 | tee -a "$LOG_FILE"; then
-    log "Configuration validation passed"
+    log_success "Configuration validation passed"
 else
-    log "Configuration validation found issues, see validation log for details"
+    log_warning "Configuration validation found issues, see validation log for details"
     if [ "$TEST_TYPE" = "full-deployment" ]; then
-        log "WARNING: Proceeding with deployment despite validation issues"
+        log_warning "Proceeding with deployment despite validation issues"
     fi
 fi
 log ""
@@ -201,4 +235,4 @@ fi
 log "Test completed at: $(date +"%Y-%m-%d %H:%M:%S")"
 log "Results saved to: ${LOG_FILE}"
 echo ""
-echo "Test completed successfully. Log file saved to: ${LOG_FILE}"
+echo -e "${GREEN}✓ Test completed successfully.${NC} Log file saved to: ${LOG_FILE}"
