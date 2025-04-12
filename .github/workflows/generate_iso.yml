@@ -39,11 +39,19 @@ jobs:
           python -m pip install --upgrade pip --quiet
           pip install requests pyyaml --quiet
           
-      - name: Generate SSH Key
+      - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "r630-switchbot@github-actions"
-          echo "Generated SSH key:"
+          
+          # Check if SSH key already exists
+          if [ ! -f ~/.ssh/id_rsa.pub ]; then
+            echo "Generating new SSH key..."
+            ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "r630-switchbot@github-actions"
+          else
+            echo "Using existing SSH key"
+          fi
+          
+          echo "SSH key:"
           cat ~/.ssh/id_rsa.pub
           
       - name: Generate OpenShift ISO
