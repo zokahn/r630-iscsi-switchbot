@@ -50,11 +50,19 @@ jobs:
         env:
           OPENSHIFT_PULL_SECRET: ${{ secrets.OPENSHIFT_PULL_SECRET }}
         run: |
+          # Create a temporary file with the pull secret
+          echo "$OPENSHIFT_PULL_SECRET" > /tmp/pull-secret.json
+          
+          # Run the script with explicit pull secret file
           python scripts/generate_openshift_iso.py \
             --version ${{ github.event.inputs.version }} \
             --rendezvous-ip ${{ github.event.inputs.rendezvous_ip }} \
             --ssh-key ~/.ssh/id_rsa.pub \
+            --pull-secret /tmp/pull-secret.json \
             ${{ github.event.inputs.skip_upload == 'true' && '--skip-upload' || '' }}
+            
+          # Clean up the temporary file
+          rm /tmp/pull-secret.json
             
       - name: Upload ISO to TrueNAS
         if: ${{ github.event.inputs.skip_upload != 'true' }}
