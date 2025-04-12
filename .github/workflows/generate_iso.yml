@@ -27,10 +27,10 @@ jobs:
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v1
         
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v1
         with:
           python-version: '3.10'
           
@@ -68,8 +68,7 @@ jobs:
           echo "ISO uploaded to TrueNAS at http://${{ github.event.inputs.truenas_ip }}/openshift_isos/${{ github.event.inputs.version }}/agent.x86_64.iso"
           
       - name: Upload ISO as Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v1
         with:
           name: openshift-${{ github.event.inputs.version }}-iso
           path: ./agent.x86_64.iso
-          retention-days: 7
