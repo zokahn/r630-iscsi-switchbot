@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../DEPLOYMENT_TRACKING/">
+        <link rel="prev" href="../OPENSHIFT_VALUES_SYSTEM/">
       
       
-        <link rel="next" href="../examples/truenas_auth.json.example">
+        <link rel="next" href="../SECRETS_PROVIDER/">
       
       
       <link rel="icon" href="../assets/images/r630-iscsi-switchbot-new-logo.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Secrets Provider System - OpenShift Multiboot System</title>
+        <title>Deployment Tracking - OpenShift Multiboot System</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#secrets-provider-system" class="md-skip">
+        <a href="#deployment-tracking-and-artifact-management" class="md-skip">
           Skip to content
         </a>
       
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Secrets Provider System
+              Deployment Tracking
             
           </span>
         </div>
@@ -757,29 +757,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../DEPLOYMENT_TRACKING/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Deployment Tracking
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -797,7 +774,7 @@
   
   
   <span class="md-ellipsis">
-    Secrets Provider System
+    Deployment Tracking
     
   </span>
   
@@ -810,7 +787,7 @@
   
   
   <span class="md-ellipsis">
-    Secrets Provider System
+    Deployment Tracking
     
   </span>
   
@@ -833,78 +810,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#deployment-identification" class="md-nav__link">
     <span class="md-ellipsis">
-      Overview
+      Deployment Identification
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#system-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Architecture">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#current-backends" class="md-nav__link">
-    <span class="md-ellipsis">
-      Current Backends
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#using-secret-references" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using Secret References
+      System Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#cli-interface" class="md-nav__link">
+  <a href="#configuration-storage" class="md-nav__link">
     <span class="md-ellipsis">
-      CLI Interface
+      Configuration Storage
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#environment-variables" class="md-nav__link">
+  <a href="#artifact-storage-on-truenas" class="md-nav__link">
     <span class="md-ellipsis">
-      Environment Variables
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-github-actions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration with GitHub Actions
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#migration-to-hashicorp-vault" class="md-nav__link">
-    <span class="md-ellipsis">
-      Migration to HashiCorp Vault
+      Artifact Storage on TrueNAS
     </span>
   </a>
   
@@ -917,12 +852,128 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Security Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#private-vs-public-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Private vs. Public Information
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safe-usage-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      Safe Usage Guidelines
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-the-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the System
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using the System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-new-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a New Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testing-the-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing the System
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-artifact-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manual Artifact Upload
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-deployment-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Accessing Deployment Information
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managing-multiple-servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Managing Multiple Servers
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#truenas-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      TrueNAS Setup
+    </span>
+  </a>
+  
 </li>
       
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECRETS_PROVIDER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Secrets Provider System
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1254,28 +1305,64 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#deployment-identification" class="md-nav__link">
     <span class="md-ellipsis">
-      Overview
+      Deployment Identification
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#system-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture
+      System Overview
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Architecture">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration Storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-storage-on-truenas" class="md-nav__link">
+    <span class="md-ellipsis">
+      Artifact Storage on TrueNAS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Considerations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Considerations">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#current-backends" class="md-nav__link">
+  <a href="#private-vs-public-information" class="md-nav__link">
     <span class="md-ellipsis">
-      Current Backends
+      Private vs. Public Information
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safe-usage-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      Safe Usage Guidelines
     </span>
   </a>
   
@@ -1287,54 +1374,69 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-secret-references" class="md-nav__link">
+  <a href="#using-the-system" class="md-nav__link">
     <span class="md-ellipsis">
-      Using Secret References
+      Using the System
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using the System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-new-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a New Deployment
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#cli-interface" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#testing-the-system" class="md-nav__link">
     <span class="md-ellipsis">
-      CLI Interface
+      Testing the System
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#environment-variables" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#manual-artifact-upload" class="md-nav__link">
     <span class="md-ellipsis">
-      Environment Variables
+      Manual Artifact Upload
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-github-actions" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#accessing-deployment-information" class="md-nav__link">
     <span class="md-ellipsis">
-      Integration with GitHub Actions
+      Accessing Deployment Information
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#migration-to-hashicorp-vault" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#managing-multiple-servers" class="md-nav__link">
     <span class="md-ellipsis">
-      Migration to HashiCorp Vault
+      Managing Multiple Servers
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#security-considerations" class="md-nav__link">
+  <a href="#truenas-setup" class="md-nav__link">
     <span class="md-ellipsis">
-      Security Considerations
+      TrueNAS Setup
     </span>
   </a>
   
@@ -1359,138 +1461,198 @@
   
 
 
-<div align="center">
-  <img src="assets/images/r630-iscsi-switchbot-new-logo.png" alt="R630 iSCSI SwitchBot Logo" width="150">
-</div>
-
-<h1 id="secrets-provider-system">Secrets Provider System</h1>
-<p>This document explains the secrets provider system that has been implemented to securely manage sensitive information in the OpenShift deployment process.</p>
-<h2 id="overview">Overview</h2>
-<p>The secrets provider system is an abstraction layer that handles secrets management through different backends. It allows the system to:</p>
-<ol>
-<li><strong>Securely store secrets</strong> in different storage backends</li>
-<li><strong>Reference secrets</strong> in configuration files without including their actual values</li>
-<li><strong>Isolate sensitive information</strong> from the codebase and configuration repositories</li>
-<li><strong>Provide a migration path</strong> to more robust secrets management solutions like HashiCorp Vault</li>
-</ol>
-<h2 id="architecture">Architecture</h2>
-<p>The secrets provider is designed as an abstracted interface with pluggable backends:</p>
-<div class="highlight"><pre><span></span><code>┌─────────────────┐     ┌───────────────────┐     ┌────────────────────┐
-│ Configuration   │     │ Secrets Provider  │     │ Storage Backends   │
-│ with References │────▶│ Interface        │────▶│ (File/TrueNAS/Vault)│
-└─────────────────┘     └───────────────────┘     └────────────────────┘
-</code></pre></div>
-<h3 id="current-backends">Current Backends</h3>
-<ol>
-<li><strong>File Backend</strong> (Default): Stores secrets in the local filesystem</li>
-<li>Path: <code>~/.openshift/secrets/</code></li>
-<li>
-<p>Simple and easy to use for development</p>
-</li>
-<li>
-<p><strong>TrueNAS Backend</strong>: Stores secrets on a TrueNAS server</p>
-</li>
-<li>Path: <code>/mnt/tank/openshift_secrets/</code></li>
-<li>
-<p>Good for persistent storage in the lab environment</p>
-</li>
-<li>
-<p><strong>Vault Backend</strong> (Planned): Will store secrets in HashiCorp Vault</p>
-</li>
-<li>Provides enterprise-grade security features</li>
-<li>Supports access control, auditing, and versioning</li>
-</ol>
-<h2 id="using-secret-references">Using Secret References</h2>
-<p>Configuration files can reference secrets using a special syntax:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Example OpenShift values file with secret references</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">baseDomain</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.com</span>
-<span class="c1"># ...other configuration...</span>
-
-<span class="c1"># Reference secrets that will be injected</span>
-<span class="nt">secretReferences</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">pullSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${secret:openshift/pull-secret}</span>
-<span class="w">  </span><span class="nt">sshKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${secret:openshift/ssh-key}</span>
-</code></pre></div>
-<p>The format for secret references is:
-- <code>${secret:path/to/secret}</code> - Simple secret reference
-- <code>${secret:path/to/secret:key}</code> - Reference a key in a structured secret (JSON)</p>
-<h2 id="cli-interface">CLI Interface</h2>
-<p>The secrets provider comes with a command-line interface for managing secrets:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Get a secret</span>
-./scripts/secrets_provider.py<span class="w"> </span>get<span class="w"> </span>openshift/pull-secret
-
-<span class="c1"># Store a secret</span>
-./scripts/secrets_provider.py<span class="w"> </span>put<span class="w"> </span>openshift/ssh-key<span class="w"> </span>--file<span class="w"> </span>~/.ssh/id_rsa.pub
-
-<span class="c1"># Check or set the provider type</span>
-./scripts/secrets_provider.py<span class="w"> </span>provider
-./scripts/secrets_provider.py<span class="w"> </span>provider<span class="w"> </span>--type<span class="w"> </span>truenas
-</code></pre></div>
-<h2 id="environment-variables">Environment Variables</h2>
-<p>The system can be configured using environment variables:</p>
-<table>
-<thead>
-<tr>
-<th>Variable</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>SECRETS_PROVIDER</code></td>
-<td>The backend provider to use</td>
-<td><code>file</code></td>
-</tr>
-<tr>
-<td><code>LOCAL_SECRETS_DIR</code></td>
-<td>Directory for file-based secrets</td>
-<td><code>~/.openshift/secrets</code></td>
-</tr>
-<tr>
-<td><code>TRUENAS_IP</code></td>
-<td>IP address of TrueNAS server</td>
-<td><code>192.168.2.245</code></td>
-</tr>
-<tr>
-<td><code>TRUENAS_USER</code></td>
-<td>Username for TrueNAS SSH access</td>
-<td><code>root</code></td>
-</tr>
-<tr>
-<td><code>TRUENAS_SECRETS_PATH</code></td>
-<td>Path on TrueNAS for secrets</td>
-<td><code>/mnt/tank/openshift_secrets</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="integration-with-github-actions">Integration with GitHub Actions</h2>
-<p>The GitHub Actions workflow integrates with the secrets provider:</p>
-<ol>
-<li>It sets up the secrets provider with GitHub Secrets as inputs</li>
-<li>Stores OpenShift pull secret and SSH key in the local provider</li>
-<li>Process any secret references in the values file</li>
-<li>Backs up configurations to TrueNAS (with sensitive data sanitized)</li>
-<li>Cleans up sensitive files after the workflow completes</li>
-</ol>
-<h2 id="migration-to-hashicorp-vault">Migration to HashiCorp Vault</h2>
-<p>To migrate to HashiCorp Vault in the future:</p>
-<ol>
-<li>Set up a Vault server and configure access</li>
-<li>Import existing secrets into Vault</li>
-<li>Implement the Vault backend in the secrets provider</li>
-<li>Update environment variables to use Vault instead of file/TrueNAS</li>
-</ol>
-<p>No changes to configuration files or workflows would be needed, as they use the abstraction layer through secret references.</p>
-<h2 id="security-considerations">Security Considerations</h2>
+<h1 id="deployment-tracking-and-artifact-management">Deployment Tracking and Artifact Management</h1>
+<p>This document explains the deployment tracking system used for maintaining multiple R630 OpenShift installations with different configurations.</p>
+<h2 id="deployment-identification">Deployment Identification</h2>
+<p>Each deployment is uniquely identified using the following format:
+<div class="highlight"><pre><span></span><code>r630-{server_id}-{cluster_type}-{timestamp}
+</code></pre></div></p>
 <ul>
-<li><strong>Never commit</strong> files containing secrets to Git</li>
-<li>The <code>.gitignore</code> file excludes patterns like <code>*secret*</code> and <code>*credential*</code></li>
-<li>When using the TrueNAS backend, access controls should be configured on the TrueNAS server</li>
-<li>The system includes sanitization for logs and artifacts to prevent accidental exposure</li>
-<li>The GitHub Actions workflow includes cleanup steps to remove sensitive files</li>
+<li><strong>server_id</strong>: Numeric identifier for the physical server (e.g., 01, 02)</li>
+<li><strong>cluster_type</strong>: Type of deployment (sno, ha, etc.)</li>
+<li><strong>timestamp</strong>: YYYYMMDDHHMMSS format timestamp when deployment was initiated</li>
 </ul>
+<p>Example: <code>r630-01-sno-20250415103025</code></p>
+<h2 id="system-overview">System Overview</h2>
+<p>The deployment tracking system consists of several integrated components:</p>
+<ol>
+<li><strong>Configuration Management</strong>:</li>
+<li>Server-specific configuration files in organized directories</li>
+<li>Timestamped file naming for version tracking</li>
+<li>
+<p>Metadata embedded in configuration files</p>
+</li>
+<li>
+<p><strong>Artifact Collection</strong>:</p>
+</li>
+<li>Automatic collection of logs, credentials, and metadata</li>
+<li>Secure storage on TrueNAS Scale</li>
+<li>
+<p>Standardized directory structure across servers</p>
+</li>
+<li>
+<p><strong>Script Integration</strong>:</p>
+</li>
+<li>Command-line flags for specifying server IDs</li>
+<li>Automatic artifact uploading at deployment completion</li>
+<li>GitHub Actions workflow integration</li>
+</ol>
+<h2 id="configuration-storage">Configuration Storage</h2>
+<p>Deployment configuration files are stored in:
+<div class="highlight"><pre><span></span><code>config/deployments/{server-id}/{deployment-id}.yaml
+</code></pre></div></p>
+<p>For example:
+<div class="highlight"><pre><span></span><code>config/deployments/r630-01/r630-01-sno-20250412160745.yaml
+</code></pre></div></p>
+<h2 id="artifact-storage-on-truenas">Artifact Storage on TrueNAS</h2>
+<p>For each deployment, artifacts are automatically collected and stored on TrueNAS Scale:
+<div class="highlight"><pre><span></span><code>/mnt/tank/deployment_artifacts/{server-id}/{deployment-id}/
+</code></pre></div></p>
+<p>The artifacts directory structure includes:
+<div class="highlight"><pre><span></span><code>r630-01/
+└── r630-01-sno-20250412160745/
+    ├── logs/
+    │   └── deployment_r630-01-sno-20250412160745.log
+    ├── auth/
+    │   └── kubeconfig
+    └── metadata/
+        └── metadata.json
+</code></pre></div></p>
+<p>Artifacts include:
+- <strong>logs/</strong>: All installation logs
+- <strong>auth/</strong>: Kubeconfig and authentication information
+- <strong>metadata.json</strong>: Detailed information about the deployment</p>
+<h2 id="security-considerations">Security Considerations</h2>
+<h3 id="private-vs-public-information">Private vs. Public Information</h3>
+<p>This deployment system maintains a clear separation between:</p>
+<ol>
+<li><strong>Private Information</strong> (stored only on TrueNAS Scale):</li>
+<li>OpenShift pull secrets</li>
+<li>SSH keys</li>
+<li>Kubeadmin passwords</li>
+<li>Full, unredacted logs</li>
+<li>
+<p>Kubeconfig files with connection details</p>
+</li>
+<li>
+<p><strong>Public Information</strong> (may appear in GitHub):</p>
+</li>
+<li>Deployment structure and scripts</li>
+<li>Configuration templates (without credentials)</li>
+<li>Sanitized examples and documentation</li>
+<li>Workflow definitions (using GitHub Secrets for credentials)</li>
+</ol>
+<h3 id="safe-usage-guidelines">Safe Usage Guidelines</h3>
+<p>When working with this system:</p>
+<ol>
+<li><strong>Never commit</strong> files containing:</li>
+<li>TrueNAS credentials</li>
+<li>OpenShift pull secrets</li>
+<li>SSH private keys</li>
+<li>Kubeadmin passwords</li>
+<li>
+<p>Kubeconfig files</p>
+</li>
+<li>
+<p><strong>Always use GitHub Secrets</strong> for:</p>
+</li>
+<li>API tokens</li>
+<li>Authentication credentials</li>
+<li>Pull secrets</li>
+<li>
+<p>Any sensitive environment variables</p>
+</li>
+<li>
+<p><strong>Review logs and outputs</strong> before publishing examples to ensure they don't contain:</p>
+</li>
+<li>Internal IP addresses</li>
+<li>Hostnames</li>
+<li>Authentication tokens</li>
+<li>Session cookies</li>
+</ol>
+<h2 id="using-the-system">Using the System</h2>
+<h3 id="creating-a-new-deployment">Creating a New Deployment</h3>
+<ol>
+<li>
+<p>Generate a values file with server identifier:
+   <div class="highlight"><pre><span></span><code>./scripts/generate_openshift_values.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--node-ip<span class="w"> </span><span class="m">192</span>.168.2.230<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cluster-name<span class="w"> </span>sno<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--server-id<span class="w"> </span><span class="m">01</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--base-domain<span class="w"> </span>intranet.lab
+</code></pre></div></p>
+</li>
+<li>
+<p>Generate and upload the ISO with artifact collection:
+   <div class="highlight"><pre><span></span><code>./scripts/generate_openshift_iso.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--version<span class="w"> </span><span class="m">4</span>.18<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--values-file<span class="w"> </span>config/deployments/r630-01/r630-01-sno-20250415103025.yaml
+</code></pre></div></p>
+</li>
+<li>
+<p>Run the deployment:
+   <div class="highlight"><pre><span></span><code>./scripts/finalize_deployment.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--server-id<span class="w"> </span><span class="m">01</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--deployment-name<span class="w"> </span>sno<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--values-file<span class="w"> </span>config/deployments/r630-01/r630-01-sno-20250415103025.yaml
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="testing-the-system">Testing the System</h3>
+<p>A test script is available to verify the deployment tracking functionality without performing an actual deployment:</p>
+<div class="highlight"><pre><span></span><code>./scripts/test_deployment_tracking.sh
+</code></pre></div>
+<p>This script:
+- Creates mock configuration files with server IDs
+- Generates sample deployment artifacts (logs, kubeconfig)
+- Tests metadata collection and artifact organization
+- Verifies the upload process in mock mode</p>
+<h3 id="manual-artifact-upload">Manual Artifact Upload</h3>
+<p>You can manually upload deployment artifacts using:</p>
+<div class="highlight"><pre><span></span><code>./scripts/upload_deployment_artifacts.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--server-id<span class="w"> </span><span class="m">01</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--deployment-name<span class="w"> </span>sno<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--log-file<span class="w"> </span>path/to/deployment.log<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--kubeconfig<span class="w"> </span>path/to/kubeconfig<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--metadata<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">4</span>.18<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--metadata<span class="w"> </span><span class="nv">status</span><span class="o">=</span>COMPLETE
+</code></pre></div>
+<p>Options include:
+- <code>--server-id</code>: Server identifier (required)
+- <code>--deployment-name</code>: Type of deployment (default: sno)
+- <code>--timestamp</code>: Custom timestamp (default: current time)
+- <code>--log-file</code>: Path to deployment log
+- <code>--kubeconfig</code>: Path to kubeconfig file
+- <code>--metadata</code>: Add custom metadata (can be specified multiple times)
+- <code>--mock-mode</code>: Test mode - don't connect to TrueNAS</p>
+<h3 id="accessing-deployment-information">Accessing Deployment Information</h3>
+<ol>
+<li>Via the web dashboard on TrueNAS: http://192.168.2.245/deployments/</li>
+<li>Directly on TrueNAS: <code>/mnt/tank/deployment_artifacts/{server-id}/{deployment-id}/</code></li>
+</ol>
+<h3 id="managing-multiple-servers">Managing Multiple Servers</h3>
+<p>Each physical server gets its own ID and separate configuration paths, allowing for parallel deployments and distinct configuration tracking:</p>
+<ul>
+<li><strong>Server-01</strong>: <code>r630-01/</code></li>
+<li>Configurations: <code>config/deployments/r630-01/</code></li>
+<li>
+<p>Artifacts: <code>/mnt/tank/deployment_artifacts/r630-01/</code></p>
+</li>
+<li>
+<p><strong>Server-02</strong>: <code>r630-02/</code></p>
+</li>
+<li>Configurations: <code>config/deployments/r630-02/</code></li>
+<li>Artifacts: <code>/mnt/tank/deployment_artifacts/r630-02/</code></li>
+</ul>
+<h2 id="truenas-setup">TrueNAS Setup</h2>
+<p>The TrueNAS environment is automatically configured with the appropriate directory structure:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run on TrueNAS server</span>
+./scripts/setup_truenas.sh
+</code></pre></div>
+<p>This will create:
+- Basic dataset structure for deployment artifacts
+- Server-specific directories for multiple R630 servers
+- Appropriate permissions for secure access</p>
 
 
 
@@ -1518,7 +1680,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../DEPLOYMENT_TRACKING/" title="Deployment Tracking" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../OPENSHIFT_VALUES_SYSTEM/" title="OpenShift Values System" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1527,19 +1689,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Deployment Tracking
+                OpenShift Values System
               </span>
             </div>
           </a>
         
         
-          <a href="../examples/truenas_auth.json.example" title="TrueNAS Auth Examples" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../SECRETS_PROVIDER/" title="Secrets Provider System" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                TrueNAS Auth Examples
+                Secrets Provider System
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
