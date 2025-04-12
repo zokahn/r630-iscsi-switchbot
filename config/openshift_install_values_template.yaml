@@ -1,0 +1,62 @@
+# OpenShift Single-Node Installation Values Template
+# This file defines the configuration for a single-node OpenShift installation
+# with support for secret references for sensitive data
+
+apiVersion: v1
+baseDomain: example.com  # Base domain for the cluster
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 0  # Single-node OpenShift has 0 worker nodes
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 1  # Single-node OpenShift has 1 master node
+metadata:
+  name: sno  # Cluster name prefix
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 192.168.2.0/24
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  none: {}  # Using the "none" platform for bare metal installations
+publish: External
+additionalTrustBundle: ""  # Add any additional CA certificates here if needed
+
+# Secret references that will be resolved by the secrets provider
+# These will be injected into the final install-config.yaml
+secretReferences:
+  pullSecret: ${secret:openshift/pull-secret}  # Path to pull secret in the secrets store
+  sshKey: ${secret:openshift/ssh-key}  # Path to SSH key in the secrets store
+
+# Single Node OpenShift specific settings
+sno:
+  nodeIP: 192.168.2.230  # IP address of the single node
+  apiVIP: 192.168.2.231  # Virtual IP for the API server
+  ingressVIP: 192.168.2.232  # Virtual IP for the ingress controller
+  domain: apps.example.com  # Domain for application routes
+  hostname: sno  # Hostname for the single node
+  
+# Network configuration
+proxy:
+  enabled: false
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: ""
+
+# Storage configuration
+storage:
+  defaultStorageClass: local-storage
+  localVolumes:
+    - device: /dev/sdb
+      storageClassName: local-block-storage
+      volumeMode: Block

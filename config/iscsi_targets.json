@@ -1,0 +1,52 @@
+{
+  "targets": [
+    {
+      "name": "default",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630.boot",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 1,
+      "description": "Default boot target"
+    },
+    {
+      "name": "linux",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630.linux",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 2,
+      "description": "Example Linux boot target"
+    },
+    {
+      "name": "windows",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630.windows",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 3,
+      "description": "Example Windows boot target"
+    },
+    {
+      "name": "openshift_4_18",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630.openshift418",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 4,
+      "description": "OpenShift 4.18 boot target"
+    },
+    {
+      "name": "openshift_4_17",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630.openshift417",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 5,
+      "description": "OpenShift 4.17 boot target"
+    },
+    {
+      "name": "openshift_4_16",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630.openshift416",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 6,
+      "description": "OpenShift 4.16 boot target"
+    }
+  ]
+}

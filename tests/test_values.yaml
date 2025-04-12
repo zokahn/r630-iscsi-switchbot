@@ -1,0 +1,40 @@
+# Test values file for secrets provider
+# This file is used to test the secrets provider functionality
+# It contains example secret references that will be resolved at runtime
+
+apiVersion: v1
+kind: InstallConfig
+metadata:
+  name: openshift-test-cluster
+baseDomain: example.com
+sno:
+  nodeIP: 192.168.2.230
+  nodeName: openshift-node1
+
+# Secret references to be resolved by the secrets provider
+secretReferences:
+  pullSecret: ${secret:openshift/pull-secret}
+  sshKey: ${secret:openshift/ssh-key}
+
+# Example configuration with inline references
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 192.168.2.0/24
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  replicas: 0
+
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  replicas: 1

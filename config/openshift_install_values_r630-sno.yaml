@@ -1,0 +1,46 @@
+apiVersion: v1
+baseDomain: intranet.lab
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 0
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 1
+metadata:
+  name: r630-sno
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 192.168.2.0/24
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  none: {}
+publish: External
+additionalTrustBundle: ''
+sno:
+  nodeIP: 192.168.2.230
+  apiVIP: 192.168.2.231
+  ingressVIP: 192.168.2.232
+  domain: apps.r630-sno.intranet.lab
+  hostname: sno
+proxy:
+  enabled: false
+  httpProxy: ''
+  httpsProxy: ''
+  noProxy: ''
+storage:
+  defaultStorageClass: local-storage
+  localVolumes:
+  - device: /dev/sdb
+    storageClassName: local-block-storage
+    volumeMode: Block

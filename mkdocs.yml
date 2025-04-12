@@ -1,0 +1,53 @@
+site_name: OpenShift Multiboot System
+site_description: Documentation for Dell PowerEdge R630 OpenShift Multiboot System
+theme:
+  name: material
+  logo: assets/images/r630-iscsi-switchrobot-logo.png
+  favicon: assets/images/r630-iscsi-switchrobot-logo.png
+  palette:
+    primary: red
+    accent: orange
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+
+docs_dir: docs_mkdocs
+nav:
+  - Home: README.md
+  - Implementation:
+    - Multiboot: docs/MULTIBOOT_IMPLEMENTATION.md
+    - Netboot: docs/NETBOOT_IMPLEMENTATION.md
+    - Implementation Summary: docs/IMPLEMENTATION_SUMMARY.md
+  - Testing:
+    - Test Plan: docs/TEST_PLAN.md
+    - Test Results: docs/TEST_RESULTS.md
+  - Documentation:
+    - TrueNAS Authentication: docs/TRUENAS_AUTHENTICATION.md
+    - Troubleshooting: docs/TROUBLESHOOTING.md
+    - Admin Handoff: docs/ADMIN_HANDOFF.md
+    - GitHub Actions: docs/GITHUB_ACTIONS_USAGE.md
+    - OpenShift Values System: docs/OPENSHIFT_VALUES_SYSTEM.md
+    - Secrets Provider System: docs/SECRETS_PROVIDER.md
+    - Examples: 
+      - TrueNAS Auth Examples: docs/examples/truenas_auth.json.example
+  - Future Development:
+    - Enhancement Plan: docs/ENHANCEMENT_PLAN.md
+  - Project Status:
+    - Project Completion: docs/PROJECT_COMPLETION.md
+    - Final Report: docs/FINAL_REPORT.md
+    - Final Demo Plan: docs/FINAL_DEMO_PLAN.md
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonition
+  - def_list
+  - footnotes
+  - attr_list
+  - md_in_html
+
+plugins:
+  - search
