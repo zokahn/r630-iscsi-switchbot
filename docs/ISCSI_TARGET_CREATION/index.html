@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../ISCSI_TARGET_CREATION/">
+        <link rel="prev" href="../ISCSI_OPENSHIFT_INTEGRATION/">
       
       
-        <link rel="next" href="../examples/truenas_auth.json.example">
+        <link rel="next" href="../TRUENAS_ISCSI_FINDING_BLOCK_DEVICES_USE_OCP_AGENT_BASED/">
       
       
       <link rel="icon" href="../assets/images/r630-iscsi-switchbot-new-logo.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>iSCSI Block Devices with OpenShift Agent - OpenShift Multiboot System</title>
+        <title>iSCSI Target Creation - OpenShift Multiboot System</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#integrate-this-with-what-we-learned-from-identifien-the-device-from-truenas-scale" class="md-skip">
+        <a href="#iscsi-target-creation-for-r630-servers" class="md-skip">
           Skip to content
         </a>
       
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              iSCSI Block Devices with OpenShift Agent
+              iSCSI Target Creation
             
           </span>
         </div>
@@ -826,29 +826,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../ISCSI_TARGET_CREATION/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    iSCSI Target Creation
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -866,7 +843,7 @@
   
   
   <span class="md-ellipsis">
-    iSCSI Block Devices with OpenShift Agent
+    iSCSI Target Creation
     
   </span>
   
@@ -879,7 +856,7 @@
   
   
   <span class="md-ellipsis">
-    iSCSI Block Devices with OpenShift Agent
+    iSCSI Target Creation
     
   </span>
   
@@ -902,79 +879,46 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#steps-to-configure-iscsi-disk-for-sno-installation" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Steps to Configure iSCSI Disk for SNO Installation
+      Overview
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Steps to Configure iSCSI Disk for SNO Installation">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Requirements
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-configure-iscsi-on-truenas-scale" class="md-nav__link">
+  <a href="#required-parameters" class="md-nav__link">
     <span class="md-ellipsis">
-      1. Configure iSCSI on TrueNAS Scale
+      Required Parameters
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-discover-and-identify-the-iscsi-disk-on-red-hat-systems" class="md-nav__link">
+  <a href="#optional-parameters" class="md-nav__link">
     <span class="md-ellipsis">
-      2. Discover and Identify the iSCSI Disk on Red Hat Systems
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-configure-agent-based-installation-with-persistent-disk-hints" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Configure Agent-Based Installation with Persistent Disk Hints
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Configure Agent-Based Installation with Persistent Disk Hints">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example Configuration:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      Steps:
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-integrate-automation-scripts" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Integrate Automation Scripts
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-verify-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. Verify Installation
+      Optional Parameters
     </span>
   </a>
   
@@ -986,9 +930,96 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
+  <a href="#examples" class="md-nav__link">
     <span class="md-ellipsis">
-      Best Practices
+      Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dry Run Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-iscsi-target-with-default-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create iSCSI Target with Default Settings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-iscsi-target-with-specific-openshift-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create iSCSI Target with Specific OpenShift Version
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-recreation-of-existing-volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      Force Recreation of Existing Volume
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generated Names
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Error Handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Related Documentation
     </span>
   </a>
   
@@ -998,6 +1029,29 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRUENAS_ISCSI_FINDING_BLOCK_DEVICES_USE_OCP_AGENT_BASED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    iSCSI Block Devices with OpenShift Agent
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1329,79 +1383,46 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#steps-to-configure-iscsi-disk-for-sno-installation" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Steps to Configure iSCSI Disk for SNO Installation
+      Overview
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Steps to Configure iSCSI Disk for SNO Installation">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Requirements
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-configure-iscsi-on-truenas-scale" class="md-nav__link">
+  <a href="#required-parameters" class="md-nav__link">
     <span class="md-ellipsis">
-      1. Configure iSCSI on TrueNAS Scale
+      Required Parameters
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-discover-and-identify-the-iscsi-disk-on-red-hat-systems" class="md-nav__link">
+  <a href="#optional-parameters" class="md-nav__link">
     <span class="md-ellipsis">
-      2. Discover and Identify the iSCSI Disk on Red Hat Systems
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-configure-agent-based-installation-with-persistent-disk-hints" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Configure Agent-Based Installation with Persistent Disk Hints
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Configure Agent-Based Installation with Persistent Disk Hints">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example Configuration:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      Steps:
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-integrate-automation-scripts" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Integrate Automation Scripts
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-verify-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. Verify Installation
+      Optional Parameters
     </span>
   </a>
   
@@ -1413,9 +1434,96 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
+  <a href="#examples" class="md-nav__link">
     <span class="md-ellipsis">
-      Best Practices
+      Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dry Run Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-iscsi-target-with-default-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create iSCSI Target with Default Settings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-iscsi-target-with-specific-openshift-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create iSCSI Target with Specific OpenShift Version
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-recreation-of-existing-volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      Force Recreation of Existing Volume
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generated Names
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Error Handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Related Documentation
     </span>
   </a>
   
@@ -1440,127 +1548,92 @@
   
 
 
-<h1 id="integrate-this-with-what-we-learned-from-identifien-the-device-from-truenas-scale">integrate this with what we learned from identifien the device from truenas scale</h1>
-<p>To integrate the process of identifying iSCSI devices from TrueNAS Scale with a Single Node OpenShift (SNO) agent-based installation, follow these steps to ensure reliable identification and configuration of the root disk. This approach combines persistent disk identification methods and TrueNAS Scale iSCSI setup principles.</p>
-<hr />
-<h2 id="steps-to-configure-iscsi-disk-for-sno-installation"><strong>Steps to Configure iSCSI Disk for SNO Installation</strong></h2>
-<h3 id="1-configure-iscsi-on-truenas-scale"><strong>1. Configure iSCSI on TrueNAS Scale</strong></h3>
-<p>Set up an iSCSI target and extent on TrueNAS Scale to serve as the boot disk for your SNO installation:</p>
+<h1 id="iscsi-target-creation-for-r630-servers">iSCSI Target Creation for R630 Servers</h1>
+<p>This document describes how to create iSCSI targets on TrueNAS Scale for Dell R630 servers to enable iSCSI boot with OpenShift.</p>
+<h2 id="overview">Overview</h2>
+<p>The <code>iscsi_target_template.sh</code> script provides a robust way to create iSCSI targets on TrueNAS Scale. It uses the TrueNAS middleware client (<code>midclt</code>) via SSH to create the necessary components:</p>
 <ol>
-<li><strong>Create a ZFS Dataset or Zvol</strong>:<ul>
-<li>If using ZFS, create a dedicated dataset for the root disk.</li>
-<li>For block storage, create a Zvol under your dataset (ensure it is correctly configured as an extent).</li>
+<li>A ZFS volume (zvol) to store the OpenShift boot image</li>
+<li>An iSCSI target with the appropriate IQN</li>
+<li>An extent linking the zvol to the iSCSI subsystem</li>
+<li>An association between the target and the extent</li>
+</ol>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>SSH access to the TrueNAS Scale server with root privileges</li>
+<li>SSH key configured for passwordless authentication (recommended)</li>
+<li><code>jq</code> installed on the TrueNAS server (should be included by default)</li>
 </ul>
-</li>
-<li><strong>Set Up iSCSI Block Share</strong>:<ul>
-<li>Use the TrueNAS Scale wizard or manual configuration:<ul>
-<li><strong>Extent Type</strong>: Select "Device" if using a full disk or Zvol.</li>
-<li><strong>Target IQN</strong>: Create a unique IQN (e.g., <code>iqn.2025-04.com.example:boot-disk</code>).</li>
-<li><strong>Portal Configuration</strong>: Add the IP address of your TrueNAS server.</li>
+<h2 id="usage">Usage</h2>
+<div class="highlight"><pre><span></span><code>./scripts/iscsi_target_template.sh<span class="w"> </span>--server-id<span class="w"> </span>ID<span class="w"> </span>--hostname<span class="w"> </span>NAME<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
+</code></pre></div>
+<h3 id="required-parameters">Required Parameters</h3>
+<ul>
+<li><code>--server-id ID</code>: Server ID (e.g., 01, 02) used in naming convention</li>
+<li><code>--hostname NAME</code>: Server hostname (used in descriptions)</li>
 </ul>
-</li>
+<h3 id="optional-parameters">Optional Parameters</h3>
+<ul>
+<li><code>--openshift-version VERSION</code>: OpenShift version (default: stable)</li>
+<li><code>--truenas-ip IP</code>: TrueNAS IP address (default: 192.168.2.245)</li>
+<li><code>--zvol-size SIZE</code>: Size of the zvol to create (default: 500G)</li>
+<li><code>--ssh-key PATH</code>: Path to SSH key for TrueNAS authentication</li>
+<li><code>--dry-run</code>: Generate commands but don't execute them</li>
+<li><code>--skip-zvol-check</code>: Skip checking if zvol exists</li>
+<li><code>--force</code>: Force recreate zvol if it exists</li>
 </ul>
-</li>
-<li><strong>Record Persistent Identifiers</strong>:<ul>
-<li>Note the LUN ID, IQN, and portal IP address for use in Red Hat-based systems.</li>
+<h2 id="examples">Examples</h2>
+<h3 id="dry-run-mode">Dry Run Mode</h3>
+<p>To see what would be executed without making any changes:</p>
+<div class="highlight"><pre><span></span><code>./scripts/iscsi_target_template.sh<span class="w"> </span>--server-id<span class="w"> </span><span class="m">02</span><span class="w"> </span>--hostname<span class="w"> </span>dumpty<span class="w"> </span>--dry-run
+</code></pre></div>
+<h3 id="create-iscsi-target-with-default-settings">Create iSCSI Target with Default Settings</h3>
+<div class="highlight"><pre><span></span><code>./scripts/iscsi_target_template.sh<span class="w"> </span>--server-id<span class="w"> </span><span class="m">02</span><span class="w"> </span>--hostname<span class="w"> </span>dumpty
+</code></pre></div>
+<h3 id="create-iscsi-target-with-specific-openshift-version">Create iSCSI Target with Specific OpenShift Version</h3>
+<div class="highlight"><pre><span></span><code>./scripts/iscsi_target_template.sh<span class="w"> </span>--server-id<span class="w"> </span><span class="m">03</span><span class="w"> </span>--hostname<span class="w"> </span>humpty<span class="w"> </span>--openshift-version<span class="w"> </span><span class="m">4</span>.14
+</code></pre></div>
+<h3 id="force-recreation-of-existing-volume">Force Recreation of Existing Volume</h3>
+<div class="highlight"><pre><span></span><code>./scripts/iscsi_target_template.sh<span class="w"> </span>--server-id<span class="w"> </span><span class="m">02</span><span class="w"> </span>--hostname<span class="w"> </span>dumpty<span class="w"> </span>--force
+</code></pre></div>
+<h2 id="generated-names">Generated Names</h2>
+<p>The script generates standardized names for all components:</p>
+<ul>
+<li><strong>ZVOL Path</strong>: <code>tank/openshift_installations/r630_&lt;server-id&gt;_&lt;version&gt;</code></li>
+<li><strong>Target IQN</strong>: <code>iqn.2005-10.org.freenas.ctl:iscsi.r630-&lt;server-id&gt;.openshift&lt;version&gt;</code></li>
+<li><strong>Extent Name</strong>: <code>openshift_r630_&lt;server-id&gt;_&lt;version&gt;_extent</code></li>
 </ul>
-</li>
-</ol>
-<hr />
-<h3 id="2-discover-and-identify-the-iscsi-disk-on-red-hat-systems"><strong>2. Discover and Identify the iSCSI Disk on Red Hat Systems</strong></h3>
-<p>After configuring TrueNAS Scale, discover the iSCSI device on your Red Hat system using persistent attributes:</p>
+<p>Where <code>&lt;version&gt;</code> is the OpenShift version with dots replaced by underscores.</p>
+<h2 id="error-handling">Error Handling</h2>
+<p>The script includes robust error handling:</p>
+<ul>
+<li>Validates required arguments</li>
+<li>Checks if the iSCSI service is running on TrueNAS</li>
+<li>Verifies if zvols already exist and handles them according to options</li>
+<li>Tracks and reports command execution status</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>The script uses the first portal (ID: 1) and initiator group (ID: 1) by default</li>
+<li>By default, existing zvols are reused rather than recreated</li>
+<li>The script requires root SSH access to the TrueNAS server</li>
+<li>For security, use SSH keys rather than password authentication</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues:</p>
 <ol>
-<li><strong>Login to the iSCSI Target</strong>:
-Use <code>iscsiadm</code> to discover and log in to the target:</li>
+<li>Run with <code>--dry-run</code> to see the commands that would be executed</li>
+<li>Check TrueNAS logs for error messages</li>
+<li>Verify SSH connectivity to the TrueNAS server</li>
+<li>Ensure the iSCSI service is enabled in TrueNAS</li>
+<li>Check if the target names already exist and use <code>--force</code> if needed</li>
 </ol>
-<div class="highlight"><pre><span></span><code>iscsiadm<span class="w"> </span>-m<span class="w"> </span>discovery<span class="w"> </span>-t<span class="w"> </span>sendtargets<span class="w"> </span>-p<span class="w"> </span><span class="p">&amp;</span>lt<span class="p">;</span>TrueNAS_IP<span class="p">&amp;</span>gt<span class="p">;</span>
-iscsiadm<span class="w"> </span>-m<span class="w"> </span>node<span class="w"> </span>--login
-</code></pre></div>
-<ol>
-<li><strong>Verify Disk Mapping</strong>:
-Check which local block device corresponds to the iSCSI LUN:</li>
-</ol>
-<div class="highlight"><pre><span></span><code>lsblk
-iscsiadm<span class="w"> </span>--mode<span class="w"> </span>session<span class="w"> </span>-P<span class="w"> </span><span class="m">3</span>
-</code></pre></div>
-<p>This will display detailed mappings, including LUNs and their associated local devices (e.g., <code>/dev/sda</code>).
-3. <strong>Retrieve Persistent Attributes</strong>:
-Use <code>lsblk</code> or <code>udevadm</code> to gather persistent identifiers like WWN, serial number, or model:</p>
-<div class="highlight"><pre><span></span><code>lsblk<span class="w"> </span>-o<span class="w"> </span>NAME,WWN,MODEL,SERIAL
-udevadm<span class="w"> </span>info<span class="w"> </span>--query<span class="o">=</span>all<span class="w"> </span>--name<span class="o">=</span>/dev/sda<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>ID_
-</code></pre></div>
-<hr />
-<h3 id="3-configure-agent-based-installation-with-persistent-disk-hints"><strong>3. Configure Agent-Based Installation with Persistent Disk Hints</strong></h3>
-<p>Update your SNO agent configuration (<code>agent-config.yaml</code>) to ensure the installer uses the correct disk:</p>
-<h4 id="example-configuration">Example Configuration:</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">hosts</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">master-0</span>
-<span class="w">    </span><span class="nt">rootDeviceHints</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">wwn</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0x50014ee2bae7ffa5&quot;</span><span class="w">  </span><span class="c1"># Replace with actual WWN</span>
-<span class="w">      </span><span class="nt">serialNumber</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BTHV507002P71P6GN&quot;</span><span class="w">  </span><span class="c1"># Replace with actual serial number</span>
-</code></pre></div>
-<h4 id="steps">Steps:</h4>
-<ol>
-<li>Replace <code>/dev/sda</code> with persistent identifiers like WWN or serial number.</li>
-<li>Validate that these identifiers match the iSCSI device discovered earlier.</li>
-</ol>
-<hr />
-<h3 id="4-integrate-automation-scripts"><strong>4. Integrate Automation Scripts</strong></h3>
-<p>In your automation scripts for creating volumes on TrueNAS Scale and configuring SNO installations:</p>
-<ol>
-<li><strong>Automate Volume Creation</strong>:
-Use TrueNAS APIs or CLI commands to create Zvols and configure iSCSI shares dynamically.</li>
-<li><strong>Automate Disk Discovery on Red Hat Systems</strong>:
-Run <code>iscsiadm</code> commands in your script to discover targets and retrieve persistent attributes automatically.</li>
-<li><strong>Update Agent Configuration Dynamically</strong>:
-Parse output from <code>lsblk</code> or <code>udevadm</code> to populate <code>rootDeviceHints</code> in <code>agent-config.yaml</code>.</li>
-</ol>
-<hr />
-<h3 id="5-verify-installation"><strong>5. Verify Installation</strong></h3>
-<p>After configuring the agent-based installation:</p>
-<ol>
-<li>Check that the installer uses the correct disk by inspecting logs for errors like <code>WARNING BootstrapInPlace.InstallationDisk: /dev/sda is ignored</code>.</li>
-<li>Validate that <code>/dev/disk/by-path/</code> or <code>/dev/disk/by-uuid/</code> points to the correct iSCSI device.</li>
-</ol>
-<hr />
-<h2 id="best-practices"><strong>Best Practices</strong></h2>
-<ol>
-<li>Use persistent identifiers (WWN, serial number) instead of transient names like <code>/dev/sda</code>.</li>
-<li>Ensure LUN IDs are unique across targets in TrueNAS Scale.</li>
-<li>Regularly test automation scripts in isolated environments before deploying them in production.</li>
-</ol>
-<p>By combining persistent disk identification methods with robust TrueNAS Scale configurations, you can reliably integrate SAN boot processes into your SNO installations without encountering device mapping issues.</p>
-<div>⁂</div>
-
-<div class="footnote">
-<hr />
-<ol>
-<li id="fn:1">
-<p>https://forum.proxmox.com/threads/proxmox-ve-and-zfs-over-iscsi-on-truenas-scale-my-steps-to-make-it-work.125387/&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
-<li id="fn:2">
-<p>https://www.reddit.com/r/truenas/comments/pqk4b3/corescale_as_iscsi_initiator/&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
-</li>
-<li id="fn:3">
-<p>https://www.truenas.com/community/threads/adding-an-external-iscsi-share-to-truenas-scale.108988/&#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
-</li>
-<li id="fn:4">
-<p>https://www.reddit.com/r/homelab/comments/uiwqdn/what_am_i_missing_iscsi_between_truenas_scale_and/&#160;<a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">&#8617;</a></p>
-</li>
-<li id="fn:5">
-<p>https://www.truenas.com/docs/scale/scaletutorials/shares/iscsi/addingiscsishares/&#160;<a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">&#8617;</a></p>
-</li>
-<li id="fn:6">
-<p>https://www.truenas.com/community/threads/truenas-scale-22-iscsi-device-extend-not-show-device.104740/&#160;<a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">&#8617;</a></p>
-</li>
-<li id="fn:7">
-<p>https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/managing_storage_devices/configuring-an-iscsi-initiator_managing-storage-devices&#160;<a class="footnote-backref" href="#fnref:7" title="Jump back to footnote 7 in the text">&#8617;</a></p>
-</li>
-<li id="fn:8">
-<p>https://jonathangazeley.com/2021/01/05/using-truenas-to-provide-persistent-storage-for-kubernetes/&#160;<a class="footnote-backref" href="#fnref:8" title="Jump back to footnote 8 in the text">&#8617;</a></p>
-</li>
-</ol>
-</div>
+<h2 id="related-documentation">Related Documentation</h2>
+<ul>
+<li><a href="R630_ISCSI_BOOT_GUIDE.md">R630 iSCSI Boot Guide</a></li>
+<li><a href="../ISCSI_OPENSHIFT_INTEGRATION/">iSCSI OpenShift Integration</a></li>
+<li><a href="../TRUENAS_AUTHENTICATION/">TrueNAS Authentication</a></li>
+</ul>
 
 
 
@@ -1588,7 +1661,7 @@ Parse output from <code>lsblk</code> or <code>udevadm</code> to populate <code>r
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../ISCSI_TARGET_CREATION/" title="iSCSI Target Creation" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../ISCSI_OPENSHIFT_INTEGRATION/" title="iSCSI and OpenShift Integration" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1597,19 +1670,19 @@ Parse output from <code>lsblk</code> or <code>udevadm</code> to populate <code>r
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                iSCSI Target Creation
+                iSCSI and OpenShift Integration
               </span>
             </div>
           </a>
         
         
-          <a href="../examples/truenas_auth.json.example" title="TrueNAS Auth Examples" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../TRUENAS_ISCSI_FINDING_BLOCK_DEVICES_USE_OCP_AGENT_BASED/" title="iSCSI Block Devices with OpenShift Agent" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                TrueNAS Auth Examples
+                iSCSI Block Devices with OpenShift Agent
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
