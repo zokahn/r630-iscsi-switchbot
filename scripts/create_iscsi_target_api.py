@@ -287,8 +287,76 @@ def associate_target_extent(session, api_url, target_id, extent_id, dry_run=Fals
             print(f"Response: {e.response.text}")
         return False
 
+def create_zvol_via_ssh(args, zvol_name, size_str, dry_run=False):
+    """Create a ZFS volume using SSH commands instead of API"""
+    parent_path = zvol_name.rsplit('/', 1)[0]  # Get parent directory
+    ssh_cmd = ["ssh"]
+    
+    if hasattr(args, 'ssh_key') and args.ssh_key:
+        ssh_cmd.extend(["-i", args.ssh_key])
+    
+    ssh_cmd.extend([f"root@{args.truenas_ip}"])
+    
+    # Create parent directory first
+    mkdir_cmd = ssh_cmd + [f"zfs create -p {parent_path}"]
+    
+    # Create zvol command
+    zvol_cmd = ssh_cmd + [f"zfs create -V {size_str} -s {zvol_name}"]
+    
+    if dry_run:
+        print("\nDRY RUN: Would create directory with SSH command:")
+        print(" ".join(mkdir_cmd))
+        print("\nDRY RUN: Would create zvol with SSH command:")
+        print(" ".join(zvol_cmd))
+        return True
+    
+    try:
+        # First create parent directory
+        print(f"Creating parent directory {parent_path} via SSH...")
+        import subprocess
+        try:
+            result = subprocess.run(mkdir_cmd, check=False, capture_output=True, text=True)
+            if result.returncode != 0 and "dataset already exists" not in result.stderr:
+                print(f"Warning creating directory: {result.stderr}")
+            else:
+                print(f"Successfully created or found parent directory")
+        except Exception as e:
+            print(f"Warning during directory creation: {e}")
+        
+        # Check if zvol already exists
+        check_cmd = ssh_cmd + [f"zfs list -t volume | grep {zvol_name}"]
+        check_result = subprocess.run(check_cmd, check=False, capture_output=True, text=True)
+        
+        if check_result.returncode == 0:
+            print(f"ZVOL {zvol_name} already exists - using existing zvol")
+            return True
+        
+        # Create the zvol
+        print(f"Creating zvol {zvol_name} via SSH...")
+        result = subprocess.run(zvol_cmd, check=True, capture_output=True, text=True)
+        print(f"Successfully created zvol {zvol_name}")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error creating zvol via SSH: {e}")
+        print(f"STDERR: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Error in SSH execution: {e}")
+        return False
+
 def main():
-    args = parse_arguments()
+    parser = argparse.ArgumentParser(description="Create iSCSI target on TrueNAS Scale using REST API")
+    parser.add_argument("--server-id", required=True, help="Server ID (e.g., 01, 02)")
+    parser.add_argument("--hostname", required=True, help="Server hostname")
+    parser.add_argument("--openshift-version", default="stable", help="OpenShift version (default: stable)")
+    parser.add_argument("--truenas-ip", default="192.168.2.245", help="TrueNAS IP address")
+    parser.add_argument("--zvol-size", default="500G", help="Size of the zvol to create")
+    parser.add_argument("--zfs-pool", default="test", help="ZFS pool name (default: test)")
+    parser.add_argument("--api-key", required=True, help="TrueNAS API key")
+    parser.add_argument("--ssh-key", help="Path to SSH key for TrueNAS (optional)")
+    parser.add_argument("--dry-run", action="store_true", help="Show API calls without executing them")
+    
+    args = parser.parse_args()
     
     # Format the zvol name and target name
     server_id = args.server_id
@@ -308,9 +376,9 @@ def main():
     # Set up API session
     session, api_url = get_api_session(args)
     
-    # Create zvol
-    if not create_zvol(session, api_url, zvol_name, args.zvol_size, args.dry_run):
-        print("\nFailed to create zvol")
+    # Create zvol using SSH instead of API
+    if not create_zvol_via_ssh(args, zvol_name, args.zvol_size, args.dry_run):
+        print("\nFailed to create zvol via SSH")
         return 1
     
     # Create iSCSI target
