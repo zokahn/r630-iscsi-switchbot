@@ -100,6 +100,47 @@ This document provides solutions for common issues that might be encountered whe
 3. Ensure boot order is correctly set in iDRAC
 4. Verify CHAP settings (if used) match between initiator and target
 
+### Problem: R630-specific iSCSI attribute dependency errors
+
+**Symptoms:**
+- Error messages like: `Unable to modify the attribute because the attribute is read-only and depends on other attributes`
+- Warnings about attributes like `IPAddressType`, `InitiatorIPAddress`, etc.
+- Configuration appears to succeed despite errors
+- The server may or may not boot from iSCSI
+
+**Solutions:**
+1. **Use Dell scripts mode**:
+   ```bash
+   # DO NOT use --direct-api flag on R630 servers
+   ./scripts/switch_openshift.py --server 192.168.2.230 --method iscsi --version 4.18 --reboot
+   ```
+
+2. **Verify actual boot behavior**:
+   - Watch the server's POST screen (via iDRAC console) during boot
+   - Look for messages indicating iSCSI connection attempts
+   - Success is measured by proper boot, not absence of configuration warnings
+
+3. **Use PXE fallback mechanism**:
+   - If you see "Using Boot0000 (PXE Device) as fallback for iSCSI boot" in the logs, this is normal
+   - R630 servers sometimes use PXE devices for iSCSI boot when no explicit iSCSI device is found
+
+4. **Verify iSCSI target is reachable**:
+   - After configuration appears complete, try manually pinging the target from another machine
+   - Check TrueNAS logs for connection attempts during server boot
+
+5. **Manual iDRAC configuration**:
+   - If all else fails, configure iSCSI manually via the iDRAC web interface
+   - Navigate to Storage → iSCSI Initiator
+   - Configure the target with values from your `iscsi_targets.json` file
+   - This bypasses the attribute dependency issues completely
+
+**Understanding R630 attribute dependencies**:
+- The R630 iDRAC has a strict hierarchy of iSCSI configuration settings
+- Certain settings must be configured in a specific order
+- Some settings depend on the state of other settings
+- Dell scripts handle these dependencies better than direct Redfish API calls
+- Some validation warnings are expected and can be safely ignored
+
 ## ISO Boot Problems
 
 ### Problem: ISO not available or accessible

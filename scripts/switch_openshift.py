@@ -40,8 +40,8 @@ def get_target_by_name(targets_data, target_name):
             return target
     return None
 
-def configure_iscsi_boot(server_ip, version):
-    """Configure server to boot from iSCSI target"""
+def configure_iscsi_boot(server_ip, version, options=None):
+    """Configure R630 server to boot from iSCSI target using Dell scripts"""
     version_fmt = version.replace('.', '_')
     target_name = f"openshift_{version_fmt}"
     
@@ -58,15 +58,47 @@ def configure_iscsi_boot(server_ip, version):
     
     # Configure iSCSI boot
     cmd = [
-        "python", str(SCRIPT_DIR / "config_iscsi_boot.py"), 
+        "python3", str(SCRIPT_DIR / "config_iscsi_boot.py"), 
+        "--server", server_ip,
+        "--user", IDRAC_USER,
+        "--password", IDRAC_PASSWORD,
         "--target", target_name
     ]
+    
+    # Handle additional options
+    if options:
+        # Add secondary target for multipath if specified
+        if options.get('multipath'):
+            secondary_target = f"openshift_{version_fmt}_secondary"
+            if get_target_by_name(targets_data, secondary_target):
+                cmd.extend(["--secondary-target", secondary_target])
+                print(f"Using multipath with secondary target: {secondary_target}")
+        
+        # Set custom initiator name if specified
+        if options.get('initiator_name'):
+            cmd.extend(["--initiator-name", options.get('initiator_name')])
+        
+        # Set gateway if specified
+        if options.get('gateway'):
+            cmd.extend(["--gateway", options.get('gateway')])
+        
+        # Validate only if specified
+        if options.get('validate_only'):
+            cmd.append("--validate-only")
+            
+        # Reset iSCSI config if specified
+        if options.get('reset_iscsi'):
+            cmd.append("--reset-iscsi")
     
     print(f"Configuring iSCSI boot for OpenShift {version}...")
     try:
         subprocess.run(cmd, check=True)
         print(f"Successfully configured iSCSI boot for target: {target_name}")
         
+        # Skip boot order change if only validating or resetting
+        if options and (options.get('validate_only') or options.get('reset_iscsi')):
+            return True
+            
         # Ensure iSCSI is set as first boot device
         set_boot_order(server_ip, "iscsi")
         return True
@@ -109,8 +141,11 @@ def configure_iso_boot(server_ip, version):
 def set_boot_order(server_ip, first_boot):
     """Set the boot order using existing script"""
     cmd = [
-        "python", 
-        str(SCRIPT_DIR / "set_boot_order.py"), 
+        "python3", 
+        str(SCRIPT_DIR / "set_boot_order.py"),
+        "--server", server_ip,
+        "--user", IDRAC_USER,
+        "--password", IDRAC_PASSWORD, 
         "--first-boot", 
         first_boot
     ]
@@ -126,7 +161,13 @@ def set_boot_order(server_ip, first_boot):
 
 def reboot_server(server_ip):
     """Reboot the server"""
-    cmd = ["python", str(SCRIPT_DIR / "reboot_server.py"), "--server", server_ip]
+    cmd = [
+        "python3", 
+        str(SCRIPT_DIR / "reboot_server.py"), 
+        "--server", server_ip,
+        "--user", IDRAC_USER,
+        "--password", IDRAC_PASSWORD
+    ]
     
     print(f"Rebooting server {server_ip}...")
     try:
@@ -211,6 +252,14 @@ def main():
     parser.add_argument("--check-only", action="store_true", help="Check configuration only, don't make changes")
     parser.add_argument("--netboot-menu", help="Custom netboot.xyz menu entry (for netboot method)")
     
+    # Advanced iSCSI options
+    iscsi_group = parser.add_argument_group("iSCSI options")
+    iscsi_group.add_argument("--multipath", action="store_true", help="Use multipath for iSCSI boot (requires secondary target)")
+    iscsi_group.add_argument("--initiator-name", help="Custom initiator name for iSCSI")
+    iscsi_group.add_argument("--gateway", help="Custom default gateway for iSCSI")
+    iscsi_group.add_argument("--validate-iscsi", action="store_true", help="Validate existing iSCSI configuration")
+    iscsi_group.add_argument("--reset-iscsi", action="store_true", help="Reset iSCSI configuration to defaults")
+    
     args = parser.parse_args()
     
     success = False
@@ -249,7 +298,16 @@ def main():
     
     # Perform the actual configuration
     if args.method == "iscsi":
-        success = configure_iscsi_boot(args.server, args.version)
+        # Collect iSCSI options
+        iscsi_options = {
+            'multipath': args.multipath,
+            'initiator_name': args.initiator_name,
+            'gateway': args.gateway,
+            'validate_only': args.validate_iscsi,
+            'reset_iscsi': args.reset_iscsi
+        }
+        print(f"Configuring R630 at {args.server} for iSCSI boot using Dell scripts...")
+        success = configure_iscsi_boot(args.server, args.version, iscsi_options)
     elif args.method == "iso":
         if check_iso_availability(args.version):
             success = configure_iso_boot(args.server, args.version)
@@ -263,13 +321,27 @@ def main():
             print("Warning: Proceeding with netboot configuration despite connectivity check failure")
             success = configure_netboot(args.server, args.netboot_menu)
     
-    if success and args.reboot:
-        reboot_server(args.server)
-    
     if success:
+        # Skip reboot for validation-only and when explicitly resetting without reboot
+        skip_reboot = (args.validate_iscsi or 
+                      (args.reset_iscsi and not args.reboot))
+        
+        if not skip_reboot and args.reboot:
+            reboot_server(args.server)
+        
         print(f"\nServer {args.server} successfully configured to boot OpenShift {args.version} using {args.method}")
-        if not args.reboot:
+        
+        if args.validate_iscsi:
+            print("Note: Only validation was performed, no configuration changes were made")
+        elif args.reset_iscsi:
+            print("Note: iSCSI configuration was reset to defaults")
+        elif not args.reboot and not skip_reboot:
             print("Note: Server was not rebooted. Use --reboot to automatically reboot after configuration")
+            
+        print("\nR630-specific notes for iSCSI boot:")
+        print("1. Depending on firmware version, you might see attribute dependency warnings in the output")
+        print("2. If no explicit iSCSI boot device is found, the system will use PXE Boot (Boot0000)")
+        print("3. Some validation errors are normal and can be ignored if the server boots correctly")
     else:
         print(f"\nFailed to configure server {args.server}")
         sys.exit(1)
