@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument("--user", default=DEFAULT_IDRAC_USER, help="iDRAC username")
     parser.add_argument("--password", default=DEFAULT_IDRAC_PASSWORD, help="iDRAC password")
     parser.add_argument("--nic", default=DEFAULT_NIC, help="NIC to configure for iSCSI boot (default: NIC.Integrated.1-1-1)")
-    parser.add_argument("--target", required=True, help="Target name from iscsi_targets.json")
+    parser.add_argument("--target", help="Target name from iscsi_targets.json")
     parser.add_argument("--secondary-target", help="Optional secondary target name for multipath")
     parser.add_argument("--initiator-name", help="Custom initiator name (default: auto-generated)")
     parser.add_argument("--gateway", help="Custom default gateway (default: DHCP)")
@@ -442,6 +442,12 @@ def main():
     if args.list_targets:
         list_available_targets()
         return
+    
+    # Make sure target is specified for all other operations
+    if not args.target:
+        print("Error: --target is required unless using --list-targets.")
+        print("Use --list-targets to see available targets, then specify one with --target.")
+        sys.exit(1)
     
     # Check R630 hardware configuration
     check_r630_hardware(args.server, args.user, args.password)
