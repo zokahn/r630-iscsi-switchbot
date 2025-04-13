@@ -143,10 +143,13 @@ fail() {
     exit 1
 }
 
-# Check if iSCSI service is running
-if ! midclt call service.query "[['service', '=', 'iscsi']]" | grep -q '"state": "RUNNING"'; then
-    echo "WARNING: iSCSI service may not be running"
-    echo "You may need to enable it with: midclt call service.start iscsi"
+# Start iSCSI service if not running
+echo "Checking iSCSI service..."
+if ! midclt call service.query '[["service","=","iscsi"]]' | grep -q '"state": "RUNNING"'; then
+    echo "Starting iSCSI service..."
+    midclt call service.start iscsi
+    echo "Waiting for service to start..."
+    sleep 5
 fi
 
 echo "Creating zvol ${ZVOL_NAME}..."
@@ -170,61 +173,45 @@ else
 fi
 
 echo "Creating target ${TARGET_NAME}..."
-# Use jq to create properly formatted JSON
-jq -n \
-  --arg name "$TARGET_NAME" \
-  --arg alias "OpenShift $HOSTNAME" \
-  '{
-    "name": $name,
-    "alias": $alias,
-    "mode": "ISCSI",
-    "groups": [
-      {
-        "portal": 1,
-        "initiator": 1,
-        "auth": null
-      }
-    ]
-  }' | tr -d '\n' > /tmp/target.json
+# Create a simple JSON string with no line breaks
+TARGET_JSON='{"name":"'${TARGET_NAME}'","alias":"OpenShift '${HOSTNAME}'","mode":"ISCSI","groups":[{"portal":1,"initiator":1,"auth":null}]}'
+echo "$TARGET_JSON" > /tmp/target.json
 
-TARGET_ID=$(midclt call iscsi.target.create - < /tmp/target.json | jq '.id')
+echo "Target JSON: $(cat /tmp/target.json)"
+TARGET_RESULT=$(midclt call iscsi.target.create - < /tmp/target.json)
+echo "Target creation result: $TARGET_RESULT"
+TARGET_ID=$(echo "$TARGET_RESULT" | jq '.id')
+
+if [ -z "$TARGET_ID" ] || [ "$TARGET_ID" = "null" ]; then
+    fail "Failed to get target ID from creation result"
+fi
+
 echo "Target created with ID: ${TARGET_ID}"
 
 echo "Creating extent ${EXTENT_NAME}..."
-# Use jq to create properly formatted JSON
-jq -n \
-  --arg name "$EXTENT_NAME" \
-  --arg disk "zvol/${ZVOL_NAME}" \
-  --arg comment "OpenShift ${HOSTNAME} boot image" \
-  '{
-    "name": $name,
-    "type": "DISK",
-    "disk": $disk,
-    "blocksize": 512,
-    "pblocksize": false,
-    "comment": $comment,
-    "insecure_tpc": true,
-    "xen": false,
-    "rpm": "SSD",
-    "ro": false
-  }' | tr -d '\n' > /tmp/extent.json
+# Create extent JSON
+EXTENT_JSON='{"name":"'${EXTENT_NAME}'","type":"DISK","disk":"zvol/'${ZVOL_NAME}'","blocksize":512,"pblocksize":false,"comment":"OpenShift '${HOSTNAME}' boot image","insecure_tpc":true,"xen":false,"rpm":"SSD","ro":false}'
+echo "$EXTENT_JSON" > /tmp/extent.json
 
-EXTENT_ID=$(midclt call iscsi.extent.create - < /tmp/extent.json | jq '.id')
+echo "Extent JSON: $(cat /tmp/extent.json)"
+EXTENT_RESULT=$(midclt call iscsi.extent.create - < /tmp/extent.json)
+echo "Extent creation result: $EXTENT_RESULT"
+EXTENT_ID=$(echo "$EXTENT_RESULT" | jq '.id')
+
+if [ -z "$EXTENT_ID" ] || [ "$EXTENT_ID" = "null" ]; then
+    fail "Failed to get extent ID from creation result"
+fi
+
 echo "Extent created with ID: ${EXTENT_ID}"
 
 echo "Associating extent with target..."
-# Use jq to create properly formatted JSON
-jq -n \
-  --argjson target "$TARGET_ID" \
-  --argjson extent "$EXTENT_ID" \
-  '{
-    "target": $target,
-    "extent": $extent,
-    "lunid": 0
-  }' | tr -d '\n' > /tmp/targetextent.json
+# Create target-extent association JSON
+TARGETEXTENT_JSON='{"target":'${TARGET_ID}',"extent":'${EXTENT_ID}',"lunid":0}'
+echo "$TARGETEXTENT_JSON" > /tmp/targetextent.json
 
-midclt call iscsi.targetextent.create - < /tmp/targetextent.json
-echo "Target and extent associated successfully"
+echo "Target-Extent JSON: $(cat /tmp/targetextent.json)"
+ASSOC_RESULT=$(midclt call iscsi.targetextent.create - < /tmp/targetextent.json)
+echo "Association result: $ASSOC_RESULT"
 
 # Clean up temp files
 rm -f /tmp/target.json /tmp/extent.json /tmp/targetextent.json
