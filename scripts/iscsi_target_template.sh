@@ -177,25 +177,8 @@ else
 fi
 
 echo "Creating target ${TARGET_NAME}..."
-# Use Python to create proper JSON (more reliable than jq in some environments)
-python3 -c "
-import json, sys
-target_data = {
-    'name': '${TARGET_NAME}',
-    'alias': 'OpenShift ${HOSTNAME}',
-    'mode': 'ISCSI',
-    'groups': [
-        {
-            'portal': 1,
-            'initiator': 1,
-            'auth': None
-        }
-    ]
-}
-with open('/tmp/target.json', 'w') as f:
-    json.dump(target_data, f)
-print('Target JSON created successfully')
-" || fail "Failed to create target JSON"
+# Create target JSON directly (with proper concat format for TrueNAS middleware)
+echo '{"name":"'${TARGET_NAME}'""alias":"OpenShift '${HOSTNAME}'""mode":"ISCSI""groups":[{"portal":1"initiator":1"auth":null}]}' > /tmp/target.json
 
 echo "Target JSON: $(cat /tmp/target.json)"
 TARGET_RESULT=$(midclt call iscsi.target.create - < /tmp/target.json)
@@ -217,25 +200,8 @@ else
 fi
 
 echo "Creating extent ${EXTENT_NAME}..."
-# Use Python to create proper JSON
-python3 -c "
-import json, sys
-extent_data = {
-    'name': '${EXTENT_NAME}',
-    'type': 'DISK',
-    'disk': 'zvol/${ZVOL_NAME}',
-    'blocksize': 512,
-    'pblocksize': False,
-    'comment': 'OpenShift ${HOSTNAME} boot image',
-    'insecure_tpc': True,
-    'xen': False,
-    'rpm': 'SSD',
-    'ro': False
-}
-with open('/tmp/extent.json', 'w') as f:
-    json.dump(extent_data, f)
-print('Extent JSON created successfully')
-" || fail "Failed to create extent JSON"
+# Create extent JSON directly (with proper concat format for TrueNAS middleware)
+echo '{"name":"'${EXTENT_NAME}'""type":"DISK""disk":"zvol/'${ZVOL_NAME}'""blocksize":512"pblocksize":false"comment":"OpenShift '${HOSTNAME}' boot image""insecure_tpc":true"xen":false"rpm":"SSD""ro":false}' > /tmp/extent.json
 
 echo "Extent JSON: $(cat /tmp/extent.json)"
 EXTENT_RESULT=$(midclt call iscsi.extent.create - < /tmp/extent.json)
@@ -257,18 +223,8 @@ else
 fi
 
 echo "Associating extent with target..."
-# Use Python to create proper JSON
-python3 -c "
-import json, sys
-assoc_data = {
-    'target': ${TARGET_ID},
-    'extent': ${EXTENT_ID},
-    'lunid': 0
-}
-with open('/tmp/targetextent.json', 'w') as f:
-    json.dump(assoc_data, f)
-print('Target-Extent JSON created successfully')
-" || fail "Failed to create target-extent JSON"
+# Create target-extent association JSON directly
+echo '{"target":'${TARGET_ID}'"extent":'${EXTENT_ID}'"lunid":0}' > /tmp/targetextent.json
 
 echo "Target-Extent JSON: $(cat /tmp/targetextent.json)"
 ASSOC_RESULT=$(midclt call iscsi.targetextent.create - < /tmp/targetextent.json)
