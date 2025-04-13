@@ -296,40 +296,62 @@ def create_iscsi_resources_via_ssh(args, zvol_name, target_name, extent_name, dr
     
     ssh_cmd.extend([f"root@{args.truenas_ip}"])
     
-    # Create a shell script to execute on TrueNAS
+    # Create a shell script to execute on TrueNAS using the latest API approach
     script_content = f"""#!/bin/bash
 set -e
 
+# Helper function for curl with common options
+api_call() {{
+    local method=$1
+    local endpoint=$2
+    local data=$3
+    
+    # Make the API call and format the response as JSON
+    curl -s -k -X $method \\
+         -H "Content-Type: application/json" \\
+         -H "Accept: application/json" \\
+         -d "$data" \\
+         "https://localhost/api/v2.0/$endpoint" | jq '.'
+}}
+
 # Check if target already exists
-if midclt call iscsi.target.query "[[\\"name\\", \\"=\\", \\"{target_name}\\"]]" | grep -q '"id":'; then
+echo "Checking if target {target_name} already exists..."
+TARGET_QUERY=$(curl -s -k -X GET "https://localhost/api/v2.0/iscsi/target?name={target_name}" | jq '.')
+
+if [ "$(echo "$TARGET_QUERY" | jq 'length')" -gt 0 ]; then
     echo "Target {target_name} already exists - using existing target"
-    TARGET_ID=$(midclt call iscsi.target.query "[[\\"name\\", \\"=\\", \\"{target_name}\\"]]" | jq '.[0].id')
+    TARGET_ID=$(echo "$TARGET_QUERY" | jq '.[0].id')
 else
     # Create target
     echo "Creating target {target_name}..."
-    TARGET_JSON='{{
+    TARGET_DATA='{{
         "name": "{target_name}",
         "alias": "OpenShift {args.hostname}",
-        "mode": "ISCSI",
-        "groups": [{{
-            "portal": 1,
-            "initiator": 1,
-            "auth": null
-        }}]
+        "groups": [
+            {{
+                "portal": 1,
+                "initiator": 1,
+                "auth": null
+            }}
+        ]
     }}'
-    echo "$TARGET_JSON" > /tmp/target.json
-    TARGET_ID=$(cat /tmp/target.json | midclt call iscsi.target.create - | jq '.id')
+    
+    TARGET_RESULT=$(api_call POST "iscsi/target" "$TARGET_DATA")
+    TARGET_ID=$(echo "$TARGET_RESULT" | jq '.id')
     echo "Target created with ID: $TARGET_ID"
 fi
 
 # Check if extent already exists
-if midclt call iscsi.extent.query "[[\\"name\\", \\"=\\", \\"{extent_name}\\"]]" | grep -q '"id":'; then
+echo "Checking if extent {extent_name} already exists..."
+EXTENT_QUERY=$(curl -s -k -X GET "https://localhost/api/v2.0/iscsi/extent?name={extent_name}" | jq '.')
+
+if [ "$(echo "$EXTENT_QUERY" | jq 'length')" -gt 0 ]; then
     echo "Extent {extent_name} already exists - using existing extent"
-    EXTENT_ID=$(midclt call iscsi.extent.query "[[\\"name\\", \\"=\\", \\"{extent_name}\\"]]" | jq '.[0].id')
+    EXTENT_ID=$(echo "$EXTENT_QUERY" | jq '.[0].id')
 else
     # Create extent
     echo "Creating extent {extent_name}..."
-    EXTENT_JSON='{{
+    EXTENT_DATA='{{
         "name": "{extent_name}",
         "type": "DISK",
         "disk": "zvol/{zvol_name}",
@@ -341,26 +363,37 @@ else
         "rpm": "SSD",
         "ro": false
     }}'
-    echo "$EXTENT_JSON" > /tmp/extent.json
-    EXTENT_ID=$(cat /tmp/extent.json | midclt call iscsi.extent.create - | jq '.id')
+    
+    EXTENT_RESULT=$(api_call POST "iscsi/extent" "$EXTENT_DATA")
+    EXTENT_ID=$(echo "$EXTENT_RESULT" | jq '.id')
     echo "Extent created with ID: $EXTENT_ID"
 fi
 
 # Check if association already exists
-ASSOC_CHECK=$(midclt call iscsi.targetextent.query "[[\\"target\\", \\"=\\", $TARGET_ID], [\\"extent\\", \\"=\\", $EXTENT_ID]]")
-if echo "$ASSOC_CHECK" | grep -q '"id":'; then
+echo "Checking if target-extent association already exists..."
+ASSOC_QUERY=$(curl -s -k -X GET "https://localhost/api/v2.0/iscsi/targetextent?target=$TARGET_ID&extent=$EXTENT_ID" | jq '.')
+
+if [ "$(echo "$ASSOC_QUERY" | jq 'length')" -gt 0 ]; then
     echo "Target-extent association already exists - skipping"
 else
     # Associate target with extent
     echo "Associating extent with target..."
-    ASSOC_JSON='{{
+    ASSOC_DATA='{{
         "target": '$TARGET_ID',
         "extent": '$EXTENT_ID',
         "lunid": 0
     }}'
-    echo "$ASSOC_JSON" > /tmp/targetextent.json
-    midclt call iscsi.targetextent.create - < /tmp/targetextent.json
+    
+    ASSOC_RESULT=$(api_call POST "iscsi/targetextent" "$ASSOC_DATA")
     echo "Target and extent associated successfully"
+fi
+
+# Make sure iSCSI service is running
+echo "Ensuring iSCSI service is running..."
+SERVICE_STATUS=$(curl -s -k -X GET "https://localhost/api/v2.0/service/id/iscsitarget" | jq '.state')
+if [ "$SERVICE_STATUS" != "\"RUNNING\"" ]; then
+    echo "Starting iSCSI service..."
+    curl -s -k -X POST -d '{"service": "iscsitarget"}' "https://localhost/api/v2.0/service/start"
 fi
 
 # Output target and extent IDs for script to capture
