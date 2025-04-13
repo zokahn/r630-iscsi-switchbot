@@ -56,10 +56,50 @@ def format_size(size_str):
     else:
         return int(size_str)
 
+def create_parent_directory(session, api_url, parent_path, dry_run=False):
+    """Create a parent directory for the zvol if it doesn't exist"""
+    url = f"{api_url}/pool/dataset"
+    payload = {
+        "name": parent_path,
+        "type": "FILESYSTEM"
+    }
+    
+    if dry_run:
+        print(f"\nDRY RUN: Would create parent directory with API call:")
+        print(f"POST {url}")
+        print(f"Payload: {json.dumps(payload, indent=2)}")
+        return True
+    
+    try:
+        # First check if directory already exists
+        check_url = f"{api_url}/pool/dataset/id/{parent_path}"
+        check_response = session.get(check_url)
+        
+        if check_response.status_code == 200:
+            print(f"Directory {parent_path} already exists - using existing directory")
+            return True
+            
+        # Create the directory if it doesn't exist
+        response = session.post(url, json=payload)
+        response.raise_for_status()
+        print(f"Successfully created directory {parent_path}")
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Error creating parent directory: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"Response: {e.response.text}")
+        return False
+
 def create_zvol(session, api_url, zvol_name, size_str, dry_run=False):
     """Create a ZFS volume using TrueNAS API"""
     # Format the size from human-readable to bytes
     size_bytes = format_size(size_str)
+    
+    # First ensure parent directory exists
+    parent_path = zvol_name.rsplit('/', 1)[0]
+    if not create_parent_directory(session, api_url, parent_path, dry_run):
+        print(f"Failed to create parent directory {parent_path}")
+        return False
     
     url = f"{api_url}/pool/dataset"
     payload = {
