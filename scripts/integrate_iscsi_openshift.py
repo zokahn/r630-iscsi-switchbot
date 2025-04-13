@@ -43,7 +43,7 @@ def parse_arguments():
     parser.add_argument("--idrac-user", default=DEFAULT_IDRAC_USER, help="iDRAC username")
     parser.add_argument("--idrac-password", default=DEFAULT_IDRAC_PASSWORD, help="iDRAC password")
     parser.add_argument("--truenas-ip", default=DEFAULT_TRUENAS_IP, help="TrueNAS IP address")
-    parser.add_argument("--truenas-user", default=DEFAULT_TRUENAS_USER, help="TrueNAS username")
+    parser.add_argument("--truenas-api-key", required=True, help="TrueNAS API key")
     parser.add_argument("--openshift-version", default=DEFAULT_OPENSHIFT_VERSION, help="OpenShift version (e.g., stable, 4.18)")
     parser.add_argument("--base-domain", default="example.com", help="Base domain for the cluster")
     parser.add_argument("--skip-target-creation", action="store_true", help="Skip TrueNAS iSCSI target creation")
@@ -86,7 +86,7 @@ def save_device_mapping(mapping):
         json.dump(mapping, f, indent=2)
 
 def create_iscsi_target(args):
-    """Create an iSCSI target on TrueNAS for the specified server"""
+    """Create an iSCSI target on TrueNAS for the specified server using API"""
     print(f"Creating iSCSI target for server {args.hostname} ({args.server_id})...")
     
     # Generate unique identifiers for this server
@@ -95,30 +95,196 @@ def create_iscsi_target(args):
     target_name = f"iqn.2005-10.org.freenas.ctl:iscsi.r630-{server_id}.openshift{version_format}"
     zvol_name = f"tank/openshift_installations/r630_{server_id}_{version_format}"
     extent_name = f"openshift_r630_{server_id}_{version_format}_extent"
-    
-    # Create zvol using midclt (TrueNAS management interface)
-    # This would typically be done via SSH on the TrueNAS server
-    print(f"To create zvol on TrueNAS: ssh {args.truenas_user}@{args.truenas_ip} 'zfs create -V 500G -s {zvol_name}'")
-    
-    # Create JSON for iSCSI target configuration
-    iscsi_config = {
-        "target_name": target_name,
-        "zvol_name": zvol_name,
-        "extent_name": extent_name
-    }
-    
-    # Print command to create iSCSI target using TrueNAS API
-    print(f"To create iSCSI target on TrueNAS, run these commands:")
-    print(f"""
-# Create the target
-TARGET_ID=$(midclt call iscsi.target.create '{{"name":"{target_name}","alias":"OpenShift {args.hostname}","mode":"ISCSI","groups":[{{"portal":1,"initiator":1,"auth":null}}]}}' | jq '.id')
 
-# Create the extent
-EXTENT_ID=$(midclt call iscsi.extent.create '{{"name":"{extent_name}","type":"DISK","disk":"zvol/{zvol_name}","blocksize":512,"pblocksize":false,"comment":"OpenShift {args.hostname} boot image","insecure_tpc":true,"xen":false,"rpm":"SSD","ro":false}}' | jq '.id')
-
-# Associate the extent with the target
-midclt call iscsi.targetextent.create '{{"target":$TARGET_ID,"extent":$EXTENT_ID,"lunid":0}}'
-""")
+    # Set up API session
+    session = requests.Session()
+    api_url = f"https://{args.truenas_ip}:444/api/v2.0"
+    session.headers.update({"Authorization": f"Bearer {args.truenas_api_key}"})
+    session.verify = False  # For self-signed certs
+    
+    # 1. Create zvol
+    print(f"Creating zvol {zvol_name} on TrueNAS via API...")
+    
+    # Ensure parent directory exists
+    parent_path = zvol_name.rsplit('/', 1)[0]
+    parts = parent_path.split('/')
+    current_path = parts[0]
+    
+    # Create each directory level
+    for i in range(1, len(parts)):
+        current_path = f"{current_path}/{parts[i]}"
+        
+        # Check if this level exists
+        check_url = f"{api_url}/pool/dataset/id/{current_path}"
+        check_response = session.get(check_url)
+        
+        if check_response.status_code != 200:
+            # Create if it doesn't exist
+            print(f"Creating dataset {current_path}...")
+            
+            payload = {
+                "name": current_path,
+                "type": "FILESYSTEM",
+                "compression": "lz4"
+            }
+            
+            try:
+                url = f"{api_url}/pool/dataset"
+                response = session.post(url, json=payload)
+                response.raise_for_status()
+                print(f"Successfully created dataset {current_path}")
+            except Exception as e:
+                print(f"Error creating dataset {current_path}: {e}")
+                if hasattr(e, 'response') and e.response.status_code == 422:
+                    print("Dataset might already exist, continuing anyway")
+    
+    # Check if zvol already exists
+    check_url = f"{api_url}/pool/dataset/id/{zvol_name}"
+    check_response = session.get(check_url)
+    
+    if check_response.status_code == 200:
+        print(f"ZVOL {zvol_name} already exists - using existing zvol")
+    else:
+        # Create the zvol
+        print(f"Creating zvol {zvol_name}...")
+        size_bytes = 500 * 1024 * 1024 * 1024  # 500GB in bytes
+        
+        url = f"{api_url}/pool/dataset"
+        payload = {
+            "name": zvol_name,
+            "type": "VOLUME",
+            "volsize": size_bytes,
+            "sparse": True
+        }
+        
+        try:
+            response = session.post(url, json=payload)
+            response.raise_for_status()
+            print(f"Successfully created zvol {zvol_name}")
+        except Exception as e:
+            print(f"Error creating zvol: {e}")
+            if hasattr(e, 'response') and e.response.status_code == 422:
+                print("ZVOL might already exist, continuing anyway")
+    
+    # 2. Create iSCSI target
+    print(f"Creating iSCSI target {target_name}...")
+    
+    # Check if target already exists
+    query_url = f"{api_url}/iscsi/target?name={target_name}"
+    query_response = session.get(query_url)
+    
+    if query_response.status_code == 200 and query_response.json():
+        targets = query_response.json()
+        if targets:
+            target_id = targets[0]['id']
+            print(f"Target {target_name} already exists with ID {target_id} - reusing")
+    else:
+        # Create the target
+        url = f"{api_url}/iscsi/target"
+        payload = {
+            "name": target_name,
+            "alias": f"OpenShift {args.hostname}",
+            "mode": "ISCSI",
+            "groups": [{"portal": 3, "initiator": 3, "auth": None}]  # Use the correct portal and initiator IDs
+        }
+        
+        try:
+            response = session.post(url, json=payload)
+            response.raise_for_status()
+            target_id = response.json()['id']
+            print(f"Successfully created target {target_name} with ID {target_id}")
+        except Exception as e:
+            print(f"Error creating iSCSI target: {e}")
+            # Continue with a default target ID for the next steps
+            target_id = 0
+    
+    # 3. Create extent
+    print(f"Creating iSCSI extent {extent_name}...")
+    
+    # Check if extent already exists
+    query_url = f"{api_url}/iscsi/extent?name={extent_name}"
+    query_response = session.get(query_url)
+    
+    if query_response.status_code == 200 and query_response.json():
+        extents = query_response.json()
+        if extents:
+            extent_id = extents[0]['id']
+            print(f"Extent {extent_name} already exists with ID {extent_id} - reusing")
+    else:
+        # Create the extent
+        url = f"{api_url}/iscsi/extent"
+        payload = {
+            "name": extent_name,
+            "type": "DISK",
+            "disk": f"zvol/{zvol_name}",
+            "blocksize": 512,
+            "pblocksize": False,
+            "comment": f"OpenShift {args.hostname} boot image",
+            "insecure_tpc": True,
+            "xen": False,
+            "rpm": "SSD",
+            "ro": False
+        }
+        
+        try:
+            response = session.post(url, json=payload)
+            response.raise_for_status()
+            extent_id = response.json()['id']
+            print(f"Successfully created extent {extent_name} with ID {extent_id}")
+        except Exception as e:
+            print(f"Error creating iSCSI extent: {e}")
+            # Continue with a default extent ID for the next steps
+            extent_id = 0
+    
+    # 4. Associate target with extent
+    print("Creating target-extent association...")
+    
+    # Check if association already exists
+    query_url = f"{api_url}/iscsi/targetextent?target={target_id}&extent={extent_id}"
+    query_response = session.get(query_url)
+    
+    if query_response.status_code == 200 and query_response.json():
+        associations = query_response.json()
+        if associations:
+            print(f"Target-extent association already exists - skipping")
+    else:
+        # Create the association
+        url = f"{api_url}/iscsi/targetextent"
+        payload = {
+            "target": target_id,
+            "extent": extent_id,
+            "lunid": 0
+        }
+        
+        try:
+            response = session.post(url, json=payload)
+            response.raise_for_status()
+            print(f"Successfully associated target {target_id} with extent {extent_id}")
+        except Exception as e:
+            print(f"Error creating target-extent association: {e}")
+    
+    # 5. Make sure iSCSI service is running
+    print("Ensuring iSCSI service is running...")
+    service_url = f"{api_url}/service/id/iscsitarget"
+    service_response = session.get(service_url)
+    
+    if service_response.status_code == 200:
+        service_data = service_response.json()
+        service_running = service_data.get('state') == 'RUNNING'
+        
+        if not service_running:
+            print("Starting iSCSI service...")
+            start_url = f"{api_url}/service/start"
+            start_payload = {"service": "iscsitarget"}
+            
+            try:
+                start_response = session.post(start_url, json=start_payload)
+                start_response.raise_for_status()
+                print("Successfully started iSCSI service")
+            except Exception as e:
+                print(f"Error starting iSCSI service: {e}")
+        else:
+            print("iSCSI service is already running")
     
     # Update the iscsi_targets.json file with the new target
     update_iscsi_targets(args, target_name, zvol_name)
