@@ -32,8 +32,8 @@ def get_api_session(args):
     """Set up API session with authentication"""
     session = requests.Session()
     
-    # Set up API URL (TrueNAS SCALE uses port 443, not 444)
-    api_url = f"https://{args.truenas_ip}/api/v2.0"
+    # Set up API URL (TrueNAS SCALE uses port 444 for the API)
+    api_url = f"https://{args.truenas_ip}:444/api/v2.0"
     
     # Add API key authentication
     session.headers.update({"Authorization": f"Bearer {args.api_key}"})
