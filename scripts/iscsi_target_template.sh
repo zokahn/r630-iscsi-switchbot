@@ -177,9 +177,25 @@ else
 fi
 
 echo "Creating target ${TARGET_NAME}..."
-# Create a simple JSON string with no line breaks
-TARGET_JSON='{"name":"'${TARGET_NAME}'","alias":"OpenShift '${HOSTNAME}'","mode":"ISCSI","groups":[{"portal":1,"initiator":1,"auth":null}]}'
-echo "$TARGET_JSON" > /tmp/target.json
+# Use proper JSON formatting with jq instead of string concatenation
+cat > /tmp/target.json << EOF
+{
+  "name": "${TARGET_NAME}",
+  "alias": "OpenShift ${HOSTNAME}",
+  "mode": "ISCSI",
+  "groups": [
+    {
+      "portal": 1,
+      "initiator": 1,
+      "auth": null
+    }
+  ]
+}
+EOF
+
+# Compact the JSON to remove newlines
+cat /tmp/target.json | jq -c '.' > /tmp/target.json.compact
+mv /tmp/target.json.compact /tmp/target.json
 
 echo "Target JSON: $(cat /tmp/target.json)"
 TARGET_RESULT=$(midclt call iscsi.target.create - < /tmp/target.json)
@@ -193,9 +209,25 @@ fi
 echo "Target created with ID: ${TARGET_ID}"
 
 echo "Creating extent ${EXTENT_NAME}..."
-# Create extent JSON
-EXTENT_JSON='{"name":"'${EXTENT_NAME}'","type":"DISK","disk":"zvol/'${ZVOL_NAME}'","blocksize":512,"pblocksize":false,"comment":"OpenShift '${HOSTNAME}' boot image","insecure_tpc":true,"xen":false,"rpm":"SSD","ro":false}'
-echo "$EXTENT_JSON" > /tmp/extent.json
+# Create extent JSON with jq for proper formatting
+cat > /tmp/extent.json << EOF
+{
+  "name": "${EXTENT_NAME}",
+  "type": "DISK",
+  "disk": "zvol/${ZVOL_NAME}",
+  "blocksize": 512,
+  "pblocksize": false,
+  "comment": "OpenShift ${HOSTNAME} boot image",
+  "insecure_tpc": true,
+  "xen": false,
+  "rpm": "SSD",
+  "ro": false
+}
+EOF
+
+# Compact the JSON to remove newlines
+cat /tmp/extent.json | jq -c '.' > /tmp/extent.json.compact
+mv /tmp/extent.json.compact /tmp/extent.json
 
 echo "Extent JSON: $(cat /tmp/extent.json)"
 EXTENT_RESULT=$(midclt call iscsi.extent.create - < /tmp/extent.json)
@@ -209,9 +241,18 @@ fi
 echo "Extent created with ID: ${EXTENT_ID}"
 
 echo "Associating extent with target..."
-# Create target-extent association JSON
-TARGETEXTENT_JSON='{"target":'${TARGET_ID}',"extent":'${EXTENT_ID}',"lunid":0}'
-echo "$TARGETEXTENT_JSON" > /tmp/targetextent.json
+# Create target-extent association JSON with jq
+cat > /tmp/targetextent.json << EOF
+{
+  "target": ${TARGET_ID},
+  "extent": ${EXTENT_ID},
+  "lunid": 0
+}
+EOF
+
+# Compact the JSON to remove newlines
+cat /tmp/targetextent.json | jq -c '.' > /tmp/targetextent.json.compact
+mv /tmp/targetextent.json.compact /tmp/targetextent.json
 
 echo "Target-Extent JSON: $(cat /tmp/targetextent.json)"
 ASSOC_RESULT=$(midclt call iscsi.targetextent.create - < /tmp/targetextent.json)
