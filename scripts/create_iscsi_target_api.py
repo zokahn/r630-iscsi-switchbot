@@ -56,38 +56,67 @@ def format_size(size_str):
     else:
         return int(size_str)
 
-def create_parent_directory(session, api_url, parent_path, dry_run=False):
-    """Create a parent directory for the zvol if it doesn't exist"""
+def create_directory_structure(session, api_url, path, dry_run=False):
+    """Create a directory structure recursively"""
+    # Split path into components
+    parts = path.split('/')
+    
+    # Create each level of the directory structure
+    current_path = parts[0]  # Start with the pool name
+    
+    for i in range(1, len(parts)):
+        # Build the path up to this point
+        current_path = f"{current_path}/{parts[i]}"
+        
+        # Skip if this is the whole path (we'll create the final item separately)
+        if current_path == path:
+            continue
+            
+        if not create_single_directory(session, api_url, current_path, dry_run):
+            return False
+            
+    return True
+
+def create_single_directory(session, api_url, dir_path, dry_run=False):
+    """Create a single directory (dataset) if it doesn't exist"""
     url = f"{api_url}/pool/dataset"
     payload = {
-        "name": parent_path,
-        "type": "FILESYSTEM"
+        "name": dir_path,
+        "type": "FILESYSTEM",
+        "compression": "lz4",  # Match existing datasets
+        "atime": "off",        # Match existing datasets
+        "exec": "on"           # Match existing datasets
     }
     
     if dry_run:
-        print(f"\nDRY RUN: Would create parent directory with API call:")
+        print(f"\nDRY RUN: Would create directory with API call:")
         print(f"POST {url}")
         print(f"Payload: {json.dumps(payload, indent=2)}")
         return True
     
     try:
         # First check if directory already exists
-        check_url = f"{api_url}/pool/dataset/id/{parent_path}"
+        check_url = f"{api_url}/pool/dataset/id/{dir_path}"
         check_response = session.get(check_url)
         
         if check_response.status_code == 200:
-            print(f"Directory {parent_path} already exists - using existing directory")
+            print(f"Directory {dir_path} already exists - using existing directory")
             return True
             
         # Create the directory if it doesn't exist
         response = session.post(url, json=payload)
         response.raise_for_status()
-        print(f"Successfully created directory {parent_path}")
+        print(f"Successfully created directory {dir_path}")
         return True
     except requests.exceptions.RequestException as e:
-        print(f"Error creating parent directory: {e}")
+        print(f"Error creating directory {dir_path}: {e}")
         if hasattr(e, "response") and e.response:
-            print(f"Response: {e.response.text}")
+            print(f"Response status: {e.response.status_code}")
+            print(f"Response text: {e.response.text}")
+            try:
+                print(f"Response JSON: {json.dumps(e.response.json(), indent=2)}")
+            except:
+                print("Could not parse response as JSON")
         return False
 
 def create_zvol(session, api_url, zvol_name, size_str, dry_run=False):
@@ -97,8 +126,8 @@ def create_zvol(session, api_url, zvol_name, size_str, dry_run=False):
     
     # First ensure parent directory exists
     parent_path = zvol_name.rsplit('/', 1)[0]
-    if not create_parent_directory(session, api_url, parent_path, dry_run):
-        print(f"Failed to create parent directory {parent_path}")
+    if not create_directory_structure(session, api_url, parent_path, dry_run):
+        print(f"Failed to create parent directory structure {parent_path}")
         return False
     
     url = f"{api_url}/pool/dataset"
