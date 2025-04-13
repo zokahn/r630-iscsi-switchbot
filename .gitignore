@@ -54,3 +54,10 @@ config/deployments/
 
 # Test reports
 test_report.md
+
+# OpenShift ISO generation
+test_run/
+test_iso_output/
+.openshift_install.log
+.openshift_install_state.json
+agent.x86_64.iso

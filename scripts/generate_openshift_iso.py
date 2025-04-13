@@ -33,13 +33,47 @@ except ImportError:
             return False
 
 def download_openshift_installer(version, output_dir):
-    """Download the OpenShift installer binary for a specific version"""
+    """
+    Download the OpenShift installer binary for a specific version
+    or use an existing one if it's already present and of the correct version
+    """
+    installer_path = os.path.join(output_dir, "openshift-install")
+    
+    # Check if installer already exists
+    if os.path.exists(installer_path):
+        try:
+            # Check the version of the existing installer
+            result = subprocess.run(
+                [installer_path, "version"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            current_version = result.stdout.strip()
+            print(f"Found existing OpenShift installer: {current_version}")
+            
+            # For "stable" we'll always use what we have
+            if version == "stable":
+                print("Using existing OpenShift installer (requested 'stable' version)")
+                return True
+                
+            # For specific versions, check if it matches
+            if version in current_version:
+                print(f"Using existing OpenShift installer - matches requested version {version}")
+                return True
+            else:
+                print(f"Existing installer ({current_version}) doesn't match requested version ({version})")
+                # Continue to download the requested version
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("Existing installer check failed, will download fresh copy")
+            # Continue to download
+    
     # Format version for URL (e.g., 4.18.0 -> 4.18.0, 4.18 -> latest 4.18.x)
-    if len(version.split('.')) < 3:
+    if len(version.split('.')) < 3 and version != "stable":
         # If just major.minor (e.g., 4.18), use format suited for latest in that stream
         version_for_url = f"{version}.x"
     else:
-        # Full version specified
+        # Full version specified or "stable"
         version_for_url = version
     
     # Determine OS and architecture
@@ -59,8 +93,12 @@ def download_openshift_installer(version, output_dir):
         # Use stable URL format
         url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-{os_type}.tar.gz"
     else:
-        # Try version-specific URL
-        url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{version_for_url}/openshift-install-{os_type}-{arch}.tar.gz"
+        # Try version-specific URL - note that macOS doesn't use the architecture suffix
+        if os_type == "mac":
+            url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{version_for_url}/openshift-install-{os_type}.tar.gz"
+        else:
+            url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{version_for_url}/openshift-install-{os_type}-{arch}.tar.gz"
+    
     installer_tar = os.path.join(output_dir, "openshift-install.tar.gz")
     
     print(f"Downloading OpenShift installer version {version} from {url}")
@@ -77,8 +115,11 @@ def download_openshift_installer(version, output_dir):
         subprocess.run(['tar', '-xzf', installer_tar, '-C', output_dir], check=True)
         
         # Make the installer executable
-        installer_path = os.path.join(output_dir, "openshift-install")
         os.chmod(installer_path, 0o755)
+        
+        # Clean up the tarball to save disk space
+        if os.path.exists(installer_tar):
+            os.unlink(installer_tar)
         
         return True
     except requests.exceptions.RequestException as e:
@@ -88,10 +129,20 @@ def download_openshift_installer(version, output_dir):
         print(f"Error extracting OpenShift installer: {e}")
         return False
 
-def create_install_config(output_dir, version, domain, pull_secret, ssh_key):
-    """Create the install-config.yaml file"""
+def create_install_config(output_dir, version, domain, pull_secret, ssh_key, installation_disk=None):
+    """
+    Create the install-config.yaml file
+    
+    This function generates the install-config.yaml using direct string formatting
+    instead of yaml.dump() to avoid issues with complex structures like pull secrets.
+    It also properly places bootstrapInPlace configuration in this file where it belongs.
+    
+    Note: This is a Day 1 configuration focused on basic installation.
+    Advanced settings should be configured as Day 2 operations.
+    """
     install_config_path = os.path.join(output_dir, "install-config.yaml")
     
+    # Base configuration - Note: Using Single Node OpenShift (SNO) settings
     content = f"""apiVersion: v1
 baseDomain: {domain}
 metadata:
@@ -100,12 +151,12 @@ compute:
 - architecture: amd64
   hyperthreading: Enabled
   name: worker
-  replicas: 1
+  replicas: 0
 controlPlane:
   architecture: amd64
   hyperthreading: Enabled
   name: master
-  replicas: 3
+  replicas: 1
 networking:
   networkType: OVNKubernetes
   clusterNetwork:
@@ -115,9 +166,17 @@ networking:
   - 172.30.0.0/16
 platform:
   none: {{}}
-pullSecret: '{pull_secret}'
-sshKey: '{ssh_key}'
 """
+
+    # Add bootstrapInPlace if installation disk is provided
+    if installation_disk:
+        content += f"""bootstrapInPlace:
+  installationDisk: {installation_disk}
+"""
+
+    # Add credentials at the end to maintain proper YAML structure
+    content += f"pullSecret: '{pull_secret}'\n"
+    content += f"sshKey: '{ssh_key}'\n"
     
     with open(install_config_path, 'w') as f:
         f.write(content)
@@ -126,7 +185,12 @@ sshKey: '{ssh_key}'
     return True
 
 def create_agent_config(output_dir, values=None, rendezvous_ip=None):
-    """Create the agent-config.yaml file using values from config or command line"""
+    """
+    Create the agent-config.yaml file using values from config or command line
+    
+    Note: bootstrapInPlace should be in install-config.yaml, not in agent-config.yaml.
+    This is a Day 1 configuration focused on the minimal settings needed.
+    """
     agent_config_path = os.path.join(output_dir, "agent-config.yaml")
     
     # If values are provided, use them; otherwise use basic parameters
@@ -156,54 +220,18 @@ def create_agent_config(output_dir, values=None, rendezvous_ip=None):
         bootstrap_in_place = values.get('bootstrapInPlace', {})
         installation_disk = bootstrap_in_place.get('installationDisk', None)
         
-        # Build network configuration based on values
-        network_config = {
-            "interfaces": [
-                {
-                    "name": interface_name,
-                    "type": "ethernet",
-                    "state": "up",
-                    "ipv4": {
-                        "enabled": True,
-                        "dhcp": use_dhcp
-                    }
-                }
-            ]
-        }
-        
-        # Add MAC address if specified
-        if mac_address:
-            network_config["interfaces"][0]["mac-address"] = mac_address
-        
-        # If static IP (not DHCP), add IP configuration
-        if not use_dhcp and node_ip:
-            network_config["interfaces"][0]["ipv4"]["address"] = [
-                {
-                    "ip": node_ip,
-                    "prefix-length": prefix_length
-                }
-            ]
-        
-        # Add DNS configuration if provided
-        if dns_servers:
-            network_config["dns-resolver"] = {
-                "config": {
-                    "server": dns_servers
-                }
-            }
-        
-        # Format network config as YAML with proper indentation
-        network_config_yaml = yaml.dump(network_config, default_flow_style=False, indent=6)
-        
-        # Build the complete agent-config content
-        content = f"""apiVersion: v1alpha1
+        # Use string templating for agent-config.yaml instead of yaml.dump
+        # to avoid formatting issues with complex structures
+        content = f"""apiVersion: v1beta1
 kind: AgentConfig
 metadata:
   name: {cluster_name}
 rendezvousIP: {node_ip}
 hosts:
   - hostname: {hostname}
-    role: master"""
+    role: master
+    interfaces:
+      - macAddress: {mac_address}"""
 
         # Add rootDeviceHints if installation disk is specified
         if installation_disk:
@@ -211,16 +239,30 @@ hosts:
     rootDeviceHints:
       deviceName: "{installation_disk}" """
         
-        # Add network configuration
-        content += f"""
-    networkConfig: 
-{network_config_yaml}"""
-
-        # Add bootstrapInPlace configuration if installation disk is specified
-        if installation_disk:
+        # For static IP configuration, add networkConfig
+        if not use_dhcp:
             content += f"""
-bootstrapInPlace:
-  installationDisk: "{installation_disk}" """
+    networkConfig:
+      interfaces:
+        - name: {interface_name}
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: true
+            address:
+              - ip: {node_ip}
+                prefix-length: {prefix_length}
+            dhcp: false"""
+            
+            # Add DNS configuration if provided
+            if dns_servers:
+                content += """
+      dns-resolver:
+        config:
+          server:"""
+                for dns in dns_servers:
+                    content += f"""
+            - {dns}"""
         
     else:
         # Basic config if no values provided (fallback for backward compatibility)
@@ -228,7 +270,7 @@ bootstrapInPlace:
             print("Error: No rendezvous IP provided and no values file specified")
             return False
             
-        content = f"""apiVersion: v1alpha1
+        content = f"""apiVersion: v1beta1
 kind: AgentConfig
 metadata:
   name: r630-cluster
@@ -432,6 +474,9 @@ def main():
             if 'sshKey' not in values_copy:
                 values_copy['sshKey'] = ssh_key
             
+            # Extract installation disk information for bootstrapInPlace
+            installation_disk = values_copy.get('bootstrapInPlace', {}).get('installationDisk', None)
+            
             # For safety, store the install config on TrueNAS if possible
             if not args.skip_upload:
                 try:
@@ -448,12 +493,12 @@ def main():
                 except Exception as e:
                     print(f"Warning: Could not back up configuration to secrets storage: {e}")
             
-            with open(os.path.join(output_dir, "install-config.yaml"), 'w') as f:
-                yaml.dump(values_copy, f, sort_keys=False)
-                
+            # Create install-config.yaml with proper Day 1 configuration
+            # We're using our string-based method instead of yaml.dump to avoid formatting issues
+            create_install_config(output_dir, args.version, domain, pull_secret, ssh_key, installation_disk)
             print(f"Created install-config.yaml from values file for OpenShift {args.version}")
             
-            # Create agent config using values
+            # Create agent config using values - with bootstrapInPlace moved to install-config.yaml
             create_agent_config(output_dir, values_copy, rendezvous_ip)
         else:
             # Create configurations from command line arguments

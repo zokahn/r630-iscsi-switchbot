@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "updated": "2025-04-13 10:17:00",
+  "description": "Mapping between iSCSI targets and device paths",
+  "targets": {
+    "iqn.2005-10.org.freenas.ctl:iscsi.r630-01.openshift4_18": {
+      "server_id": "01",
+      "hostname": "humpty",
+      "device_path": "/dev/sda",
+      "zvol_path": "/dev/zvol/tank/openshift_installations/r630_01_4_18",
+      "created": "2025-04-13 10:17:00"
+    },
+    "iqn.2005-10.org.freenas.ctl:iscsi.r630-01.openshift_stable": {
+      "server_id": "01",
+      "hostname": "humpty",
+      "device_path": "/dev/sda",
+      "zvol_path": "/dev/zvol/tank/openshift_installations/r630_01_stable",
+      "created": "2025-04-13 10:17:00"
+    }
+  }
+}
