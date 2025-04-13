@@ -143,13 +143,17 @@ fail() {
     exit 1
 }
 
-# Start iSCSI service if not running
+# Check iSCSI service (different name variations possible)
 echo "Checking iSCSI service..."
-if ! midclt call service.query '[["service","=","iscsi"]]' | grep -q '"state": "RUNNING"'; then
-    echo "Starting iSCSI service..."
-    midclt call service.start iscsi
-    echo "Waiting for service to start..."
-    sleep 5
+if midclt call service.query '[["service","=","iscsitarget"]]' 2>/dev/null | grep -q '"state": "RUNNING"'; then
+    echo "iSCSI service (iscsitarget) is running"
+elif midclt call service.query '[["service","=","iscsi"]]' 2>/dev/null | grep -q '"state": "RUNNING"'; then
+    echo "iSCSI service (iscsi) is running"
+else
+    echo "WARNING: iSCSI service does not appear to be running"
+    echo "The service name might be different on this TrueNAS version"
+    echo "Please manually ensure the iSCSI service is started"
+    # We'll continue anyway and try to create the resources
 fi
 
 echo "Creating zvol ${ZVOL_NAME}..."
