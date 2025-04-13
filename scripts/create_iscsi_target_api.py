@@ -171,7 +171,7 @@ def create_iscsi_target(session, api_url, target_name, hostname, dry_run=False):
         "name": target_name,
         "alias": f"OpenShift {hostname}",
         "mode": "ISCSI",
-        "groups": [{"portal": 1, "initiator": 1, "auth": None}]
+        "groups": [{"portal": 3, "initiator": 3, "auth": None}]  # Portal ID 3 and Initiator ID 3 based on system config
     }
     
     if dry_run:
