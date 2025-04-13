@@ -287,248 +287,153 @@ def associate_target_extent(session, api_url, target_id, extent_id, dry_run=Fals
             print(f"Response: {e.response.text}")
         return False
 
-def create_iscsi_resources_via_ssh(args, zvol_name, target_name, extent_name, dry_run=False):
-    """Create iSCSI target, extent and association using SSH commands"""
-    ssh_cmd = ["ssh"]
+def ensure_parent_directory_exists(session, api_url, parent_path, dry_run=False):
+    """Make sure the parent directory structure exists"""
+    # Split the parent path into components
+    parts = parent_path.split('/')
     
-    if hasattr(args, 'ssh_key') and args.ssh_key:
-        ssh_cmd.extend(["-i", args.ssh_key])
+    # Start with the pool name
+    current_path = parts[0]
     
-    ssh_cmd.extend([f"root@{args.truenas_ip}"])
+    # Check and create each directory level
+    for i in range(1, len(parts)):
+        current_path = f"{current_path}/{parts[i]}"
+        
+        # Check if this level exists
+        check_url = f"{api_url}/pool/dataset/id/{current_path}"
+        check_response = session.get(check_url)
+        
+        if check_response.status_code == 200:
+            print(f"Dataset {current_path} already exists")
+            continue
+        
+        # If it doesn't exist, create it
+        print(f"Creating dataset {current_path}...")
+        
+        payload = {
+            "name": current_path,
+            "type": "FILESYSTEM",
+            "compression": "lz4"
+        }
+        
+        if dry_run:
+            print(f"DRY RUN: Would create dataset {current_path}")
+            continue
+        
+        try:
+            url = f"{api_url}/pool/dataset"
+            response = session.post(url, json=payload)
+            response.raise_for_status()
+            print(f"Successfully created dataset {current_path}")
+        except requests.exceptions.HTTPError as e:
+            print(f"Error creating dataset {current_path}: {e}")
+            # If we get a 422 error, it might be because the dataset already exists
+            if e.response.status_code == 422:
+                print("Dataset might already exist, continuing anyway")
+            else:
+                raise
     
-    # Create a remote shell script that will create the resources
-    # We'll use direct commands rather than trying to construct a complex script via Python
+    return True
+
+def create_zvol_api(session, api_url, zvol_name, size_str, dry_run=False):
+    """Create a ZFS volume using direct API calls"""
+    # Format the size from human-readable to bytes
+    size_bytes = format_size(size_str)
     
-    # First check for existing target
-    target_check_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/target?name={target_name}' | jq 'length'"]
-    extent_check_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/extent?name={extent_name}' | jq 'length'"]
+    # Ensure parent directory exists
+    parent_path = zvol_name.rsplit('/', 1)[0]
+    try:
+        ensure_parent_directory_exists(session, api_url, parent_path, dry_run)
+    except Exception as e:
+        print(f"Error ensuring parent directory exists: {e}")
+        # Continue anyway - the zvol creation might still succeed
+    
+    # Check if zvol already exists
+    check_url = f"{api_url}/pool/dataset/id/{zvol_name}"
+    check_response = session.get(check_url)
+    
+    if check_response.status_code == 200:
+        print(f"ZVOL {zvol_name} already exists - using existing zvol")
+        return True
+    
+    print(f"Creating zvol {zvol_name}...")
+    url = f"{api_url}/pool/dataset"
+    payload = {
+        "name": zvol_name,
+        "type": "VOLUME",
+        "volsize": size_bytes,
+        "sparse": True
+    }
     
     if dry_run:
-        print("\nDRY RUN: Would execute these SSH commands:")
-        print(f"Target check: {' '.join(target_check_cmd)}")
-        print(f"Extent check: {' '.join(extent_check_cmd)}")
-        print("Then would create target, extent, association as needed")
-        return (0, 0)  # Return dummy values for dry run
+        print(f"DRY RUN: Would create zvol {zvol_name}")
+        return True
     
     try:
-        import subprocess
-        import json
-        import tempfile
+        response = session.post(url, json=payload)
+        response.raise_for_status()
+        print(f"Successfully created zvol {zvol_name}")
+        return True
+    except requests.exceptions.HTTPError as e:
+        print(f"Error creating zvol: {e}")
+        # Check if the error is a 422 - zvol might already exist
+        if hasattr(e, 'response') and e.response.status_code == 422:
+            print("ZVOL might already exist, continuing anyway")
+            return True
+        return False
+    except Exception as e:
+        print(f"Unexpected error creating zvol: {e}")
+        return False
+
+def create_iscsi_resources_api(session, api_url, zvol_name, target_name, extent_name, hostname, dry_run=False):
+    """Create iSCSI target, extent and association using direct API calls"""
+    # Get or create target
+    target_id = create_iscsi_target(session, api_url, target_name, hostname, dry_run)
+    if not target_id:
+        print("Failed to create iSCSI target")
+        return False
         
-        # Check if target exists
-        print("Checking if target exists...")
-        target_result = subprocess.run(target_check_cmd, check=True, capture_output=True, text=True)
-        target_exists = target_result.stdout.strip() != "0"
+    # Get or create extent
+    extent_id = create_iscsi_extent(session, api_url, extent_name, zvol_name, hostname, dry_run)
+    if not extent_id:
+        print("Failed to create iSCSI extent")
+        return False
         
-        # Check if extent exists
-        print("Checking if extent exists...")
-        extent_result = subprocess.run(extent_check_cmd, check=True, capture_output=True, text=True)
-        extent_exists = extent_result.stdout.strip() != "0"
-        
-        # Create target if it doesn't exist
-        if not target_exists:
-            print(f"Creating target {target_name}...")
-            target_data = {
-                "name": target_name,
-                "alias": f"OpenShift {args.hostname}",
-                "groups": [
-                    {
-                        "portal": 1,
-                        "initiator": 1,
-                        "auth": None
-                    }
-                ]
-            }
-            
-            # Write the target data to a temporary file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(target_data, f)
-                target_file = f.name
-            
-            # SCP the file to the TrueNAS server
-            scp_cmd = ["scp"]
-            if hasattr(args, 'ssh_key') and args.ssh_key:
-                scp_cmd.extend(["-i", args.ssh_key])
-            scp_cmd.extend([target_file, f"root@{args.truenas_ip}:/tmp/target.json"])
-            subprocess.run(scp_cmd, check=True)
-            
-            # Create the target
-            create_target_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d @/tmp/target.json 'https://localhost/api/v2.0/iscsi/target' | jq '.id'"]
-            target_id_result = subprocess.run(create_target_cmd, check=True, capture_output=True, text=True)
-            target_id = target_id_result.stdout.strip()
-        else:
-            # Get the target ID
-            get_target_id_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/target?name={target_name}' | jq '.[0].id'"]
-            target_id_result = subprocess.run(get_target_id_cmd, check=True, capture_output=True, text=True)
-            target_id = target_id_result.stdout.strip()
-            print(f"Target {target_name} already exists with ID {target_id}")
-        
-        # Create extent if it doesn't exist
-        if not extent_exists:
-            print(f"Creating extent {extent_name}...")
-            extent_data = {
-                "name": extent_name,
-                "type": "DISK",
-                "disk": f"zvol/{zvol_name}",
-                "blocksize": 512,
-                "pblocksize": False,
-                "comment": f"OpenShift {args.hostname} boot image",
-                "insecure_tpc": True,
-                "xen": False,
-                "rpm": "SSD",
-                "ro": False
-            }
-            
-            # Write the extent data to a temporary file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(extent_data, f)
-                extent_file = f.name
-            
-            # SCP the file to the TrueNAS server
-            scp_cmd = ["scp"]
-            if hasattr(args, 'ssh_key') and args.ssh_key:
-                scp_cmd.extend(["-i", args.ssh_key])
-            scp_cmd.extend([extent_file, f"root@{args.truenas_ip}:/tmp/extent.json"])
-            subprocess.run(scp_cmd, check=True)
-            
-            # Create the extent
-            create_extent_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d @/tmp/extent.json 'https://localhost/api/v2.0/iscsi/extent' | jq '.id'"]
-            extent_id_result = subprocess.run(create_extent_cmd, check=True, capture_output=True, text=True)
-            extent_id = extent_id_result.stdout.strip()
-        else:
-            # Get the extent ID
-            get_extent_id_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/extent?name={extent_name}' | jq '.[0].id'"]
-            extent_id_result = subprocess.run(get_extent_id_cmd, check=True, capture_output=True, text=True)
-            extent_id = extent_id_result.stdout.strip()
-            print(f"Extent {extent_name} already exists with ID {extent_id}")
-        
-        # Check if association exists
-        check_assoc_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/targetextent?target={target_id}&extent={extent_id}' | jq 'length'"]
-        assoc_result = subprocess.run(check_assoc_cmd, check=True, capture_output=True, text=True)
-        assoc_exists = assoc_result.stdout.strip() != "0"
-        
-        if not assoc_exists:
-            print("Creating target-extent association...")
-            assoc_data = {
-                "target": int(target_id.strip('"')),
-                "extent": int(extent_id.strip('"')),
-                "lunid": 0
-            }
-            
-            # Write the association data to a temporary file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(assoc_data, f)
-                assoc_file = f.name
-            
-            # SCP the file to the TrueNAS server
-            scp_cmd = ["scp"]
-            if hasattr(args, 'ssh_key') and args.ssh_key:
-                scp_cmd.extend(["-i", args.ssh_key])
-            scp_cmd.extend([assoc_file, f"root@{args.truenas_ip}:/tmp/assoc.json"])
-            subprocess.run(scp_cmd, check=True)
-            
-            # Create the association
-            create_assoc_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d @/tmp/assoc.json 'https://localhost/api/v2.0/iscsi/targetextent'"]
-            subprocess.run(create_assoc_cmd, check=True)
-            print("Target-extent association created successfully")
-        else:
-            print("Target-extent association already exists")
-        
-        # Make sure iSCSI service is running
-        print("Ensuring iSCSI service is running...")
-        check_service_cmd = ssh_cmd + ["curl -s -k -X GET 'https://localhost/api/v2.0/service/id/iscsitarget' | jq '.state'"]
-        service_result = subprocess.run(check_service_cmd, check=True, capture_output=True, text=True)
-        service_running = service_result.stdout.strip() == '"RUNNING"'
+    # Associate target with extent
+    if not associate_target_extent(session, api_url, target_id, extent_id, dry_run):
+        print("Failed to associate target with extent")
+        return False
+    
+    # Make sure iSCSI service is running
+    print("Ensuring iSCSI service is running...")
+    service_url = f"{api_url}/service/id/iscsitarget"
+    service_response = session.get(service_url)
+    
+    if service_response.status_code == 200:
+        service_data = service_response.json()
+        service_running = service_data.get('state') == 'RUNNING'
         
         if not service_running:
             print("Starting iSCSI service...")
-            start_service_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d '{\"service\": \"iscsitarget\"}' 'https://localhost/api/v2.0/service/start'"]
-            subprocess.run(start_service_cmd, check=True)
-            print("iSCSI service started")
+            start_url = f"{api_url}/service/start"
+            start_payload = {"service": "iscsitarget"}
+            
+            if dry_run:
+                print("DRY RUN: Would start iSCSI service")
+            else:
+                try:
+                    start_response = session.post(start_url, json=start_payload)
+                    start_response.raise_for_status()
+                    print("Successfully started iSCSI service")
+                except Exception as e:
+                    print(f"Error starting iSCSI service: {e}")
+                    # Continue anyway - the service might already be running
         else:
             print("iSCSI service is already running")
-        
-        # Clean up temporary files on the server
-        cleanup_cmd = ssh_cmd + ["rm -f /tmp/target.json /tmp/extent.json /tmp/assoc.json"]
-        subprocess.run(cleanup_cmd, check=False)
-        
-        # Clean up local temporary files
-        if 'target_file' in locals():
-            import os
-            os.unlink(target_file)
-        if 'extent_file' in locals():
-            os.unlink(extent_file)
-        if 'assoc_file' in locals():
-            os.unlink(assoc_file)
-            
-        print("Successfully created all iSCSI resources")
-        return (target_id.strip('"'), extent_id.strip('"'))
-        
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing SSH command: {e}")
-        print(f"Command output: {e.stdout if hasattr(e, 'stdout') else 'no output'}")
-        print(f"Command error: {e.stderr if hasattr(e, 'stderr') else 'no error output'}")
-        return False
-    except Exception as e:
-        print(f"Error in SSH execution: {e}")
-        return False
-
-def create_zvol_via_ssh(args, zvol_name, size_str, dry_run=False):
-    """Create a ZFS volume using SSH commands instead of API"""
-    parent_path = zvol_name.rsplit('/', 1)[0]  # Get parent directory
-    ssh_cmd = ["ssh"]
+    else:
+        print(f"Warning: Could not check iSCSI service status: {service_response.status_code}")
     
-    if hasattr(args, 'ssh_key') and args.ssh_key:
-        ssh_cmd.extend(["-i", args.ssh_key])
-    
-    ssh_cmd.extend([f"root@{args.truenas_ip}"])
-    
-    # Create parent directory first
-    mkdir_cmd = ssh_cmd + [f"zfs create -p {parent_path}"]
-    
-    # Create zvol command
-    zvol_cmd = ssh_cmd + [f"zfs create -V {size_str} -s {zvol_name}"]
-    
-    if dry_run:
-        print("\nDRY RUN: Would create directory with SSH command:")
-        print(" ".join(mkdir_cmd))
-        print("\nDRY RUN: Would create zvol with SSH command:")
-        print(" ".join(zvol_cmd))
-        return True
-    
-    try:
-        # First create parent directory
-        print(f"Creating parent directory {parent_path} via SSH...")
-        import subprocess
-        try:
-            result = subprocess.run(mkdir_cmd, check=False, capture_output=True, text=True)
-            if result.returncode != 0 and "dataset already exists" not in result.stderr:
-                print(f"Warning creating directory: {result.stderr}")
-            else:
-                print(f"Successfully created or found parent directory")
-        except Exception as e:
-            print(f"Warning during directory creation: {e}")
-        
-        # Check if zvol already exists
-        check_cmd = ssh_cmd + [f"zfs list -t volume | grep {zvol_name}"]
-        check_result = subprocess.run(check_cmd, check=False, capture_output=True, text=True)
-        
-        if check_result.returncode == 0:
-            print(f"ZVOL {zvol_name} already exists - using existing zvol")
-            return True
-        
-        # Create the zvol
-        print(f"Creating zvol {zvol_name} via SSH...")
-        result = subprocess.run(zvol_cmd, check=True, capture_output=True, text=True)
-        print(f"Successfully created zvol {zvol_name}")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error creating zvol via SSH: {e}")
-        print(f"STDERR: {e.stderr}")
-        return False
-    except Exception as e:
-        print(f"Error in SSH execution: {e}")
-        return False
+    return (target_id, extent_id)
 
 def main():
     parser = argparse.ArgumentParser(description="Create iSCSI target on TrueNAS Scale using REST API")
@@ -539,7 +444,7 @@ def main():
     parser.add_argument("--zvol-size", default="500G", help="Size of the zvol to create")
     parser.add_argument("--zfs-pool", default="test", help="ZFS pool name (default: test)")
     parser.add_argument("--api-key", required=True, help="TrueNAS API key")
-    parser.add_argument("--ssh-key", help="Path to SSH key for TrueNAS (optional)")
+    parser.add_argument("--ssh-key", help="Path to SSH key for TrueNAS (optional, not used)")
     parser.add_argument("--dry-run", action="store_true", help="Show API calls without executing them")
     
     args = parser.parse_args()
@@ -562,15 +467,15 @@ def main():
     # Set up API session
     session, api_url = get_api_session(args)
     
-    # Create zvol using SSH instead of API
-    if not create_zvol_via_ssh(args, zvol_name, args.zvol_size, args.dry_run):
-        print("\nFailed to create zvol via SSH")
+    # Create zvol using direct API calls
+    if not create_zvol_api(session, api_url, zvol_name, args.zvol_size, args.dry_run):
+        print("\nFailed to create zvol via API")
         return 1
     
-    # Create all iSCSI resources via SSH - the API is proving unreliable
-    result = create_iscsi_resources_via_ssh(args, zvol_name, target_name, extent_name, args.dry_run)
+    # Create all iSCSI resources using direct API calls
+    result = create_iscsi_resources_api(session, api_url, zvol_name, target_name, extent_name, args.hostname, args.dry_run)
     if not result or not isinstance(result, tuple):
-        print("\nFailed to create iSCSI resources via SSH")
+        print("\nFailed to create iSCSI resources via API")
         return 1
     
     target_id, extent_id = result
