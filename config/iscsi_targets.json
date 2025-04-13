@@ -69,6 +69,14 @@
       "auth_method": "CHAP",
       "chap_username": "iscsi_initiator",
       "chap_secret": "ch4p_s3cr3t_p@ssw0rd"
+    },
+    {
+      "name": "dumpty",
+      "description": "OpenShift stable for R630-02",
+      "iqn": "iqn.2005-10.org.freenas.ctl:iscsi.r630-02.openshiftstable",
+      "ip": "192.168.2.245",
+      "port": 3260,
+      "lun": 0
     }
   ]
 }
