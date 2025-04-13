@@ -2,6 +2,15 @@
 
 This document explains the specific approach taken for configuring iSCSI boot on Dell PowerEdge R630 servers in our lab environment. It provides details on the Dell script-focused implementation, hardware considerations, and troubleshooting tips.
 
+## Configured Servers
+
+This guide applies to the following Dell R630 servers:
+
+- **humpty** (192.168.2.230): Primary server with iSCSI boot configured
+- **dumpty** (192.168.2.232): Secondary server with separate iSCSI volume
+
+Each server requires its own dedicated iSCSI target to avoid boot conflicts.
+
 ## Overview
 
 The OpenShift deployment system has been optimized specifically for Dell R630 servers using Dell-provided scripts for iSCSI boot configuration. This approach was chosen based on extensive testing that showed Dell scripts handle hardware-specific dependencies better than direct Redfish API implementations.

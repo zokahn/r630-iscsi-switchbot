@@ -2,6 +2,15 @@
 
 This document explains the deployment tracking system used for maintaining multiple R630 OpenShift installations with different configurations.
 
+## Server Inventory
+
+The following R630 servers are configured in this environment:
+
+| Server ID | Hostname | IP Address    | Description               |
+|-----------|----------|---------------|---------------------------|
+| 01        | humpty   | 192.168.2.230 | Primary OpenShift server  |
+| 02        | dumpty   | 192.168.2.232 | Secondary OpenShift server|
+
 ## Deployment Identification
 
 Each deployment is uniquely identified using the following format:

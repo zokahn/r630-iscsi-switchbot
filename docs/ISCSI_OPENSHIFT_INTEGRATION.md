@@ -141,15 +141,28 @@ If the server doesn't boot from iSCSI:
 
 ## Examples
 
-### Complete Setup for a New Server
+### Examples with Environment Servers
 
+#### For humpty (server-id 01):
 ```bash
 # Create iSCSI target, configure iSCSI boot, and generate OpenShift ISO
 ./scripts/integrate_iscsi_openshift.py \
   --server-id 01 \
   --hostname humpty \
-  --node-ip 192.168.2.90 \
+  --node-ip 192.168.2.230 \
   --mac-address e4:43:4b:44:5b:10 \
+  --base-domain omnisack.nl \
+  --openshift-version stable
+```
+
+#### For dumpty (server-id 02):
+```bash
+# Create iSCSI target, configure iSCSI boot, and generate OpenShift ISO
+./scripts/integrate_iscsi_openshift.py \
+  --server-id 02 \
+  --hostname dumpty \
+  --node-ip 192.168.2.232 \
+  --mac-address XX:XX:XX:XX:XX:XX \
   --base-domain omnisack.nl \
   --openshift-version stable
 ```
@@ -161,7 +174,7 @@ If the server doesn't boot from iSCSI:
 ./scripts/integrate_iscsi_openshift.py \
   --server-id 01 \
   --hostname humpty \
-  --node-ip 192.168.2.90 \
+  --node-ip 192.168.2.230 \
   --mac-address e4:43:4b:44:5b:10 \
   --skip-target-creation \
   --skip-iscsi-config
