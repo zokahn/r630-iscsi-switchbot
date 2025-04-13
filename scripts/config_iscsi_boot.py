@@ -216,7 +216,7 @@ def apply_network_parameters(args):
     if args.no_reboot:
         cmd.extend(["--reboot", "l"])  # Schedule but don't reboot
     else:
-        cmd.extend(["--reboot", "y"])  # Reboot immediately
+        cmd.extend(["--reboot", "n"])  # Reboot immediately - note: must use "n" not "y" for immediate reboot
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -285,7 +285,7 @@ def apply_target_parameters(args, target, secondary_target=None):
     if args.no_reboot:
         cmd.extend(["--reboot", "l"])
     else:
-        cmd.extend(["--reboot", "y"])
+        cmd.extend(["--reboot", "n"])  # Reboot immediately - note: must use "n" not "y" for immediate reboot
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -350,7 +350,7 @@ def apply_auth_parameters(args, target, secondary_target=None):
     if args.no_reboot:
         cmd.extend(["--reboot", "l"])
     else:
-        cmd.extend(["--reboot", "y"])
+        cmd.extend(["--reboot", "n"])  # Reboot immediately - note: must use "n" not "y" for immediate reboot
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -464,7 +464,7 @@ def reset_iscsi_configuration(args):
     if args.no_reboot:
         cmd.extend(["--reboot", "l"])
     else:
-        cmd.extend(["--reboot", "y"])
+        cmd.extend(["--reboot", "n"])  # Reboot immediately - note: must use "n" not "y" for immediate reboot
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
