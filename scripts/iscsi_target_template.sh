@@ -12,6 +12,7 @@
 #   --openshift-version V  OpenShift version (default: stable)
 #   --truenas-ip IP        TrueNAS IP (default: 192.168.2.245)
 #   --zvol-size SIZE       Zvol size (default: 500G)
+#   --zfs-pool POOL        ZFS pool name (default: test)
 #   --ssh-key PATH         Path to SSH key
 #   --dry-run              Don't execute, just show commands
 #   --skip-zvol-check      Skip checking if zvol exists
@@ -23,6 +24,7 @@ set -e
 TRUENAS_IP="192.168.2.245"
 OPENSHIFT_VERSION="stable"
 ZVOL_SIZE="500G"
+ZFS_POOL="test"
 DRY_RUN=0
 SKIP_ZVOL_CHECK=0
 FORCE=0
@@ -50,6 +52,10 @@ while [[ $# -gt 0 ]]; do
       ZVOL_SIZE="$2"
       shift 2
       ;;
+    --zfs-pool)
+      ZFS_POOL="$2"
+      shift 2
+      ;;
     --ssh-key)
       SSH_KEY="$2"
       shift 2
@@ -74,6 +80,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --openshift-version V  OpenShift version (default: stable)"
       echo "  --truenas-ip IP        TrueNAS IP (default: 192.168.2.245)"
       echo "  --zvol-size SIZE       Zvol size (default: 500G)"
+      echo "  --zfs-pool POOL        ZFS pool name (default: test)"
       echo "  --ssh-key PATH         Path to SSH key"
       echo "  --dry-run              Don't execute, just show commands"
       echo "  --skip-zvol-check      Skip checking if zvol exists"
@@ -97,7 +104,7 @@ fi
 
 # Format names
 VERSION_FORMAT=$(echo $OPENSHIFT_VERSION | tr '.' '_')
-ZVOL_NAME="tank/openshift_installations/r630_${SERVER_ID}_${VERSION_FORMAT}"
+ZVOL_NAME="${ZFS_POOL}/openshift_installations/r630_${SERVER_ID}_${VERSION_FORMAT}"
 TARGET_NAME="iqn.2005-10.org.freenas.ctl:iscsi.r630-${SERVER_ID}.openshift${VERSION_FORMAT}"
 EXTENT_NAME="openshift_r630_${SERVER_ID}_${VERSION_FORMAT}_extent"
 

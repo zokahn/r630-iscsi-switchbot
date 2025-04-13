@@ -33,6 +33,7 @@ The `iscsi_target_template.sh` script provides a robust way to create iSCSI targ
 - `--openshift-version VERSION`: OpenShift version (default: stable)
 - `--truenas-ip IP`: TrueNAS IP address (default: 192.168.2.245)
 - `--zvol-size SIZE`: Size of the zvol to create (default: 500G)
+- `--zfs-pool POOL`: ZFS pool name to use (default: test)
 - `--ssh-key PATH`: Path to SSH key for TrueNAS authentication
 - `--dry-run`: Generate commands but don't execute them
 - `--skip-zvol-check`: Skip checking if zvol exists
@@ -70,11 +71,14 @@ To see what would be executed without making any changes:
 
 The script generates standardized names for all components:
 
-- **ZVOL Path**: `tank/openshift_installations/r630_<server-id>_<version>`
+- **ZVOL Path**: `<zfs-pool>/openshift_installations/r630_<server-id>_<version>`
 - **Target IQN**: `iqn.2005-10.org.freenas.ctl:iscsi.r630-<server-id>.openshift<version>`
 - **Extent Name**: `openshift_r630_<server-id>_<version>_extent`
 
-Where `<version>` is the OpenShift version with dots replaced by underscores.
+Where:
+- `<zfs-pool>` is the ZFS pool name specified with `--zfs-pool` (default: "test")
+- `<server-id>` is the ID provided with `--server-id`
+- `<version>` is the OpenShift version with dots replaced by underscores
 
 ## Error Handling
 
