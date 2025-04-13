@@ -177,25 +177,22 @@ else
 fi
 
 echo "Creating target ${TARGET_NAME}..."
-# Use proper JSON formatting with jq instead of string concatenation
-cat > /tmp/target.json << EOF
-{
-  "name": "${TARGET_NAME}",
-  "alias": "OpenShift ${HOSTNAME}",
-  "mode": "ISCSI",
-  "groups": [
-    {
-      "portal": 1,
-      "initiator": 1,
-      "auth": null
-    }
-  ]
-}
-EOF
-
-# Compact the JSON to remove newlines
-cat /tmp/target.json | jq -c '.' > /tmp/target.json.compact
-mv /tmp/target.json.compact /tmp/target.json
+# Directly create properly formatted JSON using jq
+jq -n \
+  --arg name "$TARGET_NAME" \
+  --arg alias "OpenShift $HOSTNAME" \
+  '{
+    name: $name,
+    alias: $alias,
+    mode: "ISCSI",
+    groups: [
+      {
+        portal: 1,
+        initiator: 1,
+        auth: null
+      }
+    ]
+  }' > /tmp/target.json
 
 echo "Target JSON: $(cat /tmp/target.json)"
 TARGET_RESULT=$(midclt call iscsi.target.create - < /tmp/target.json)
@@ -203,31 +200,37 @@ echo "Target creation result: $TARGET_RESULT"
 TARGET_ID=$(echo "$TARGET_RESULT" | jq '.id')
 
 if [ -z "$TARGET_ID" ] || [ "$TARGET_ID" = "null" ]; then
-    fail "Failed to get target ID from creation result"
+    echo "WARNING: Failed to get target ID. Check if target already exists."
+    # Try to find the target ID by name
+    echo "Trying to find target by name..."
+    TARGET_ID=$(midclt call iscsi.target.query "[['name','=','${TARGET_NAME}']]" | jq '.[0].id')
+    if [ -z "$TARGET_ID" ] || [ "$TARGET_ID" = "null" ]; then
+        fail "Failed to create or find target"
+    else
+        echo "Found existing target with ID: ${TARGET_ID}"
+    fi
+else
+    echo "Target created with ID: ${TARGET_ID}"
 fi
 
-echo "Target created with ID: ${TARGET_ID}"
-
 echo "Creating extent ${EXTENT_NAME}..."
-# Create extent JSON with jq for proper formatting
-cat > /tmp/extent.json << EOF
-{
-  "name": "${EXTENT_NAME}",
-  "type": "DISK",
-  "disk": "zvol/${ZVOL_NAME}",
-  "blocksize": 512,
-  "pblocksize": false,
-  "comment": "OpenShift ${HOSTNAME} boot image",
-  "insecure_tpc": true,
-  "xen": false,
-  "rpm": "SSD",
-  "ro": false
-}
-EOF
-
-# Compact the JSON to remove newlines
-cat /tmp/extent.json | jq -c '.' > /tmp/extent.json.compact
-mv /tmp/extent.json.compact /tmp/extent.json
+# Directly create properly formatted JSON using jq
+jq -n \
+  --arg name "$EXTENT_NAME" \
+  --arg disk "zvol/${ZVOL_NAME}" \
+  --arg comment "OpenShift ${HOSTNAME} boot image" \
+  '{
+    name: $name,
+    type: "DISK",
+    disk: $disk,
+    blocksize: 512,
+    pblocksize: false,
+    comment: $comment,
+    insecure_tpc: true,
+    xen: false,
+    rpm: "SSD",
+    ro: false
+  }' > /tmp/extent.json
 
 echo "Extent JSON: $(cat /tmp/extent.json)"
 EXTENT_RESULT=$(midclt call iscsi.extent.create - < /tmp/extent.json)
@@ -235,24 +238,29 @@ echo "Extent creation result: $EXTENT_RESULT"
 EXTENT_ID=$(echo "$EXTENT_RESULT" | jq '.id')
 
 if [ -z "$EXTENT_ID" ] || [ "$EXTENT_ID" = "null" ]; then
-    fail "Failed to get extent ID from creation result"
+    echo "WARNING: Failed to get extent ID. Check if extent already exists."
+    # Try to find the extent ID by name
+    echo "Trying to find extent by name..."
+    EXTENT_ID=$(midclt call iscsi.extent.query "[['name','=','${EXTENT_NAME}']]" | jq '.[0].id')
+    if [ -z "$EXTENT_ID" ] || [ "$EXTENT_ID" = "null" ]; then
+        fail "Failed to create or find extent"
+    else
+        echo "Found existing extent with ID: ${EXTENT_ID}"
+    fi
+else
+    echo "Extent created with ID: ${EXTENT_ID}"
 fi
 
-echo "Extent created with ID: ${EXTENT_ID}"
-
 echo "Associating extent with target..."
-# Create target-extent association JSON with jq
-cat > /tmp/targetextent.json << EOF
-{
-  "target": ${TARGET_ID},
-  "extent": ${EXTENT_ID},
-  "lunid": 0
-}
-EOF
-
-# Compact the JSON to remove newlines
-cat /tmp/targetextent.json | jq -c '.' > /tmp/targetextent.json.compact
-mv /tmp/targetextent.json.compact /tmp/targetextent.json
+# Create target-extent association JSON directly with jq
+jq -n \
+  --argjson target "$TARGET_ID" \
+  --argjson extent "$EXTENT_ID" \
+  '{
+    target: $target,
+    extent: $extent,
+    lunid: 0
+  }' > /tmp/targetextent.json
 
 echo "Target-Extent JSON: $(cat /tmp/targetextent.json)"
 ASSOC_RESULT=$(midclt call iscsi.targetextent.create - < /tmp/targetextent.json)
