@@ -287,6 +287,150 @@ def associate_target_extent(session, api_url, target_id, extent_id, dry_run=Fals
             print(f"Response: {e.response.text}")
         return False
 
+def create_iscsi_resources_via_ssh(args, zvol_name, target_name, extent_name, dry_run=False):
+    """Create iSCSI target, extent and association using SSH commands"""
+    ssh_cmd = ["ssh"]
+    
+    if hasattr(args, 'ssh_key') and args.ssh_key:
+        ssh_cmd.extend(["-i", args.ssh_key])
+    
+    ssh_cmd.extend([f"root@{args.truenas_ip}"])
+    
+    # Create a shell script to execute on TrueNAS
+    script_content = f"""#!/bin/bash
+set -e
+
+# Check if target already exists
+if midclt call iscsi.target.query "[[\\"name\\", \\"=\\", \\"{target_name}\\"]]" | grep -q '"id":'; then
+    echo "Target {target_name} already exists - using existing target"
+    TARGET_ID=$(midclt call iscsi.target.query "[[\\"name\\", \\"=\\", \\"{target_name}\\"]]" | jq '.[0].id')
+else
+    # Create target
+    echo "Creating target {target_name}..."
+    TARGET_JSON='{{
+        "name": "{target_name}",
+        "alias": "OpenShift {args.hostname}",
+        "mode": "ISCSI",
+        "groups": [{{
+            "portal": 1,
+            "initiator": 1,
+            "auth": null
+        }}]
+    }}'
+    echo "$TARGET_JSON" > /tmp/target.json
+    TARGET_ID=$(cat /tmp/target.json | midclt call iscsi.target.create - | jq '.id')
+    echo "Target created with ID: $TARGET_ID"
+fi
+
+# Check if extent already exists
+if midclt call iscsi.extent.query "[[\\"name\\", \\"=\\", \\"{extent_name}\\"]]" | grep -q '"id":'; then
+    echo "Extent {extent_name} already exists - using existing extent"
+    EXTENT_ID=$(midclt call iscsi.extent.query "[[\\"name\\", \\"=\\", \\"{extent_name}\\"]]" | jq '.[0].id')
+else
+    # Create extent
+    echo "Creating extent {extent_name}..."
+    EXTENT_JSON='{{
+        "name": "{extent_name}",
+        "type": "DISK",
+        "disk": "zvol/{zvol_name}",
+        "blocksize": 512,
+        "pblocksize": false,
+        "comment": "OpenShift {args.hostname} boot image",
+        "insecure_tpc": true,
+        "xen": false,
+        "rpm": "SSD",
+        "ro": false
+    }}'
+    echo "$EXTENT_JSON" > /tmp/extent.json
+    EXTENT_ID=$(cat /tmp/extent.json | midclt call iscsi.extent.create - | jq '.id')
+    echo "Extent created with ID: $EXTENT_ID"
+fi
+
+# Check if association already exists
+ASSOC_CHECK=$(midclt call iscsi.targetextent.query "[[\\"target\\", \\"=\\", $TARGET_ID], [\\"extent\\", \\"=\\", $EXTENT_ID]]")
+if echo "$ASSOC_CHECK" | grep -q '"id":'; then
+    echo "Target-extent association already exists - skipping"
+else
+    # Associate target with extent
+    echo "Associating extent with target..."
+    ASSOC_JSON='{{
+        "target": '$TARGET_ID',
+        "extent": '$EXTENT_ID',
+        "lunid": 0
+    }}'
+    echo "$ASSOC_JSON" > /tmp/targetextent.json
+    midclt call iscsi.targetextent.create - < /tmp/targetextent.json
+    echo "Target and extent associated successfully"
+fi
+
+# Output target and extent IDs for script to capture
+echo "RESULT_TARGET_ID=$TARGET_ID"
+echo "RESULT_EXTENT_ID=$EXTENT_ID"
+echo "SUCCESS=true"
+"""
+    
+    if dry_run:
+        print("\nDRY RUN: Would create iSCSI resources with this script on the remote server:")
+        print("-----------------------------------")
+        print(script_content)
+        print("-----------------------------------")
+        return True
+    
+    try:
+        # Create a temporary script file locally
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp:
+            temp.write(script_content)
+            temp_path = temp.name
+        
+        # Make it executable
+        import os
+        os.chmod(temp_path, 0o755)
+        
+        # Execute the script on the remote server
+        import subprocess
+        print(f"Creating iSCSI resources via SSH...")
+        remote_cmd = ssh_cmd + ["bash -s"]
+        
+        with open(temp_path, 'r') as script_file:
+            result = subprocess.run(remote_cmd, stdin=script_file, check=True, 
+                                   capture_output=True, text=True)
+        
+        # Parse the output to get the target and extent IDs and success status
+        output = result.stdout
+        print(output)  # Show full output for debugging
+        
+        # Check if successful
+        if "SUCCESS=true" in output:
+            # Try to extract target and extent IDs
+            import re
+            target_id_match = re.search(r'RESULT_TARGET_ID=(\d+)', output)
+            extent_id_match = re.search(r'RESULT_EXTENT_ID=(\d+)', output)
+            
+            if target_id_match and extent_id_match:
+                target_id = target_id_match.group(1)
+                extent_id = extent_id_match.group(1)
+                print(f"Successfully created iSCSI resources via SSH")
+                return (target_id, extent_id)
+            else:
+                print(f"Successfully created iSCSI resources but could not extract IDs")
+                return (0, 0)  # Return dummy IDs
+        else:
+            print(f"Failed to create iSCSI resources - no success marker found")
+            return False
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error creating iSCSI resources via SSH: {e}")
+        print(f"STDERR: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Error in SSH execution: {e}")
+        return False
+    finally:
+        # Clean up the temporary file
+        if 'temp_path' in locals():
+            os.unlink(temp_path)
+
 def create_zvol_via_ssh(args, zvol_name, size_str, dry_run=False):
     """Create a ZFS volume using SSH commands instead of API"""
     parent_path = zvol_name.rsplit('/', 1)[0]  # Get parent directory
@@ -381,23 +525,13 @@ def main():
         print("\nFailed to create zvol via SSH")
         return 1
     
-    # Create iSCSI target
-    target_id = create_iscsi_target(session, api_url, target_name, args.hostname, args.dry_run)
-    if not target_id:
-        print("\nFailed to create iSCSI target")
+    # Create all iSCSI resources via SSH - the API is proving unreliable
+    result = create_iscsi_resources_via_ssh(args, zvol_name, target_name, extent_name, args.dry_run)
+    if not result or not isinstance(result, tuple):
+        print("\nFailed to create iSCSI resources via SSH")
         return 1
     
-    # Create iSCSI extent
-    extent_id = create_iscsi_extent(session, api_url, extent_name, zvol_name, args.hostname, args.dry_run)
-    if not extent_id:
-        print("\nFailed to create iSCSI extent")
-        return 1
-    
-    # Associate target with extent
-    if not associate_target_extent(session, api_url, target_id, extent_id, args.dry_run):
-        print("\nFailed to associate target with extent")
-        return 1
-    
+    target_id, extent_id = result
     print("\nSuccess! iSCSI target created successfully")
     print(f"Target: {target_name} (ID: {target_id})")
     print(f"Extent: {extent_name} (ID: {extent_id})")
