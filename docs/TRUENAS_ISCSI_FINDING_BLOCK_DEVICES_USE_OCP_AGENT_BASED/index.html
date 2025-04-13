@@ -13,25 +13,25 @@
       
       
       
-        <link rel="prev" href="../TEST_PLAN/">
+        <link rel="prev" href="../ISCSI_OPENSHIFT_INTEGRATION/">
       
       
-        <link rel="next" href="../docs/TRUENAS_AUTHENTICATION/">
+        <link rel="next" href="../examples/truenas_auth.json.example">
       
       
-      <link rel="icon" href="../docs/assets/images/r630-iscsi-switchbot-new-logo.png">
+      <link rel="icon" href="../assets/images/r630-iscsi-switchbot-new-logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
     
     
       
-        <title>Test Results - OpenShift Multiboot System</title>
+        <title>iSCSI Block Devices with OpenShift Agent - OpenShift Multiboot System</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -50,9 +50,9 @@
       
     
     
-      <link rel="stylesheet" href="../docs/assets/css/custom.css">
+      <link rel="stylesheet" href="../assets/css/custom.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#dell-poweredge-r630-openshift-multiboot-system-test-results" class="md-skip">
+        <a href="#integrate-this-with-what-we-learned-from-identifien-the-device-from-truenas-scale" class="md-skip">
           Skip to content
         </a>
       
@@ -90,9 +90,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="OpenShift Multiboot System" class="md-header__button md-logo" aria-label="OpenShift Multiboot System" data-md-component="logo">
+    <a href="../.." title="OpenShift Multiboot System" class="md-header__button md-logo" aria-label="OpenShift Multiboot System" data-md-component="logo">
       
-  <img src="../docs/assets/images/r630-iscsi-switchbot-new-logo.png" alt="logo">
+  <img src="../assets/images/r630-iscsi-switchbot-new-logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Test Results
+              iSCSI Block Devices with OpenShift Agent
             
           </span>
         </div>
@@ -194,7 +194,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -215,11 +215,31 @@
     
     
       <li class="md-tabs__item">
-        <a href="../MULTIBOOT_IMPLEMENTATION/" class="md-tabs__link">
+        <a href="../../MULTIBOOT_IMPLEMENTATION/" class="md-tabs__link">
           
   
   
   Implementation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../TEST_PLAN/" class="md-tabs__link">
+          
+  
+  
+  Testing
 
         </a>
       </li>
@@ -237,27 +257,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../TEST_PLAN/" class="md-tabs__link">
-          
-  
-  
-  Testing
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../docs/TRUENAS_AUTHENTICATION/" class="md-tabs__link">
+        <a href="../TRUENAS_AUTHENTICATION/" class="md-tabs__link">
           
   
   
@@ -277,7 +277,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../ENHANCEMENT_PLAN/" class="md-tabs__link">
+        <a href="../../ENHANCEMENT_PLAN/" class="md-tabs__link">
           
   
   
@@ -297,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../PROJECT_COMPLETION/" class="md-tabs__link">
+        <a href="../../PROJECT_COMPLETION/" class="md-tabs__link">
           
   
   
@@ -331,9 +331,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="OpenShift Multiboot System" class="md-nav__button md-logo" aria-label="OpenShift Multiboot System" data-md-component="logo">
+    <a href="../.." title="OpenShift Multiboot System" class="md-nav__button md-logo" aria-label="OpenShift Multiboot System" data-md-component="logo">
       
-  <img src="../docs/assets/images/r630-iscsi-switchbot-new-logo.png" alt="logo">
+  <img src="../assets/images/r630-iscsi-switchbot-new-logo.png" alt="logo">
 
     </a>
     OpenShift Multiboot System
@@ -360,7 +360,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -425,7 +425,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../MULTIBOOT_IMPLEMENTATION/" class="md-nav__link">
+      <a href="../../MULTIBOOT_IMPLEMENTATION/" class="md-nav__link">
         
   
   
@@ -448,7 +448,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../NETBOOT_IMPLEMENTATION/" class="md-nav__link">
+      <a href="../../NETBOOT_IMPLEMENTATION/" class="md-nav__link">
         
   
   
@@ -471,12 +471,108 @@
   
   
     <li class="md-nav__item">
-      <a href="../IMPLEMENTATION_SUMMARY/" class="md-nav__link">
+      <a href="../../IMPLEMENTATION_SUMMARY/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     Implementation Summary
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Testing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../TEST_PLAN/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test Plan
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../TEST_RESULTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test Results
     
   </span>
   
@@ -519,15 +615,15 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
-    Testing
+    Documentation
     
   </span>
   
@@ -535,10 +631,10 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
-            Testing
+            Documentation
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -549,12 +645,173 @@
   
   
     <li class="md-nav__item">
-      <a href="../TEST_PLAN/" class="md-nav__link">
+      <a href="../TRUENAS_AUTHENTICATION/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Test Plan
+    TrueNAS Authentication
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADMIN_HANDOFF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Admin Handoff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GITHUB_ACTIONS_USAGE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    GitHub Actions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OPENSHIFT_VALUES_SYSTEM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OpenShift Values System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEPLOYMENT_TRACKING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deployment Tracking
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECRETS_PROVIDER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Secrets Provider System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ISCSI_OPENSHIFT_INTEGRATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    iSCSI and OpenShift Integration
     
   </span>
   
@@ -586,7 +843,7 @@
   
   
   <span class="md-ellipsis">
-    Test Results
+    iSCSI Block Devices with OpenShift Agent
     
   </span>
   
@@ -599,7 +856,7 @@
   
   
   <span class="md-ellipsis">
-    Test Results
+    iSCSI Block Devices with OpenShift Agent
     
   </span>
   
@@ -622,55 +879,79 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#test-environment" class="md-nav__link">
+  <a href="#steps-to-configure-iscsi-disk-for-sno-installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Test Environment
+      Steps to Configure iSCSI Disk for SNO Installation
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#component-testing-results" class="md-nav__link">
-    <span class="md-ellipsis">
-      Component Testing Results
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Component Testing Results">
+    <nav class="md-nav" aria-label="Steps to Configure iSCSI Disk for SNO Installation">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-truenas-authentication-connectivity" class="md-nav__link">
+  <a href="#1-configure-iscsi-on-truenas-scale" class="md-nav__link">
     <span class="md-ellipsis">
-      1. TrueNAS Authentication &amp; Connectivity
+      1. Configure iSCSI on TrueNAS Scale
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-storage-configuration" class="md-nav__link">
+  <a href="#2-discover-and-identify-the-iscsi-disk-on-red-hat-systems" class="md-nav__link">
     <span class="md-ellipsis">
-      2. Storage Configuration
+      2. Discover and Identify the iSCSI Disk on Red Hat Systems
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-iso-generation-management" class="md-nav__link">
+  <a href="#3-configure-agent-based-installation-with-persistent-disk-hints" class="md-nav__link">
     <span class="md-ellipsis">
-      3. ISO Generation &amp; Management
+      3. Configure Agent-Based Installation with Persistent Disk Hints
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Configure Agent-Based Installation with Persistent Disk Hints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Configuration:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-boot-management" class="md-nav__link">
+  <a href="#steps" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Boot Management
+      Steps:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-integrate-automation-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Integrate Automation Scripts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-verify-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Verify Installation
     </span>
   </a>
   
@@ -682,60 +963,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-points-enhancement-tasks" class="md-nav__link">
+  <a href="#best-practices" class="md-nav__link">
     <span class="md-ellipsis">
-      Open Points &amp; Enhancement Tasks
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Open Points &amp; Enhancement Tasks">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#critical-issues" class="md-nav__link">
-    <span class="md-ellipsis">
-      Critical Issues
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#feature-enhancements" class="md-nav__link">
-    <span class="md-ellipsis">
-      Feature Enhancements
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#code-improvements" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Improvements
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#documentation-testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Documentation &amp; Testing
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      Next Steps
+      Best Practices
     </span>
   </a>
   
@@ -745,263 +975,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    Documentation
-    
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            Documentation
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/TRUENAS_AUTHENTICATION/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    TrueNAS Authentication
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/TROUBLESHOOTING/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Troubleshooting
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/ADMIN_HANDOFF/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Admin Handoff
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/GITHUB_ACTIONS_USAGE/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    GitHub Actions
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/OPENSHIFT_VALUES_SYSTEM/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    OpenShift Values System
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/DEPLOYMENT_TRACKING/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Deployment Tracking
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/SECRETS_PROVIDER/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Secrets Provider System
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/ISCSI_OPENSHIFT_INTEGRATION/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    iSCSI and OpenShift Integration
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/TRUENAS_ISCSI_FINDING_BLOCK_DEVICES_USE_OCP_AGENT_BASED/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    iSCSI Block Devices with OpenShift Agent
-    
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -1043,17 +1016,20 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
         
           
-          <label class="md-nav__link" for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_11" id="__nav_4_11_label" tabindex="">
             
   
   
@@ -1080,7 +1056,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../docs/examples/truenas_auth.json.example" class="md-nav__link">
+      <a href="../examples/truenas_auth.json.example" class="md-nav__link">
         
   
   
@@ -1161,7 +1137,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ENHANCEMENT_PLAN/" class="md-nav__link">
+      <a href="../../ENHANCEMENT_PLAN/" class="md-nav__link">
         
   
   
@@ -1234,7 +1210,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../PROJECT_COMPLETION/" class="md-nav__link">
+      <a href="../../PROJECT_COMPLETION/" class="md-nav__link">
         
   
   
@@ -1257,7 +1233,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../FINAL_REPORT/" class="md-nav__link">
+      <a href="../../FINAL_REPORT/" class="md-nav__link">
         
   
   
@@ -1280,7 +1256,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../docs/FINAL_DEMO_PLAN/" class="md-nav__link">
+      <a href="../FINAL_DEMO_PLAN/" class="md-nav__link">
         
   
   
@@ -1330,55 +1306,79 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#test-environment" class="md-nav__link">
+  <a href="#steps-to-configure-iscsi-disk-for-sno-installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Test Environment
+      Steps to Configure iSCSI Disk for SNO Installation
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#component-testing-results" class="md-nav__link">
-    <span class="md-ellipsis">
-      Component Testing Results
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Component Testing Results">
+    <nav class="md-nav" aria-label="Steps to Configure iSCSI Disk for SNO Installation">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-truenas-authentication-connectivity" class="md-nav__link">
+  <a href="#1-configure-iscsi-on-truenas-scale" class="md-nav__link">
     <span class="md-ellipsis">
-      1. TrueNAS Authentication &amp; Connectivity
+      1. Configure iSCSI on TrueNAS Scale
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-storage-configuration" class="md-nav__link">
+  <a href="#2-discover-and-identify-the-iscsi-disk-on-red-hat-systems" class="md-nav__link">
     <span class="md-ellipsis">
-      2. Storage Configuration
+      2. Discover and Identify the iSCSI Disk on Red Hat Systems
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-iso-generation-management" class="md-nav__link">
+  <a href="#3-configure-agent-based-installation-with-persistent-disk-hints" class="md-nav__link">
     <span class="md-ellipsis">
-      3. ISO Generation &amp; Management
+      3. Configure Agent-Based Installation with Persistent Disk Hints
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Configure Agent-Based Installation with Persistent Disk Hints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Configuration:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-boot-management" class="md-nav__link">
+  <a href="#steps" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Boot Management
+      Steps:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-integrate-automation-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Integrate Automation Scripts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-verify-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Verify Installation
     </span>
   </a>
   
@@ -1390,60 +1390,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-points-enhancement-tasks" class="md-nav__link">
+  <a href="#best-practices" class="md-nav__link">
     <span class="md-ellipsis">
-      Open Points &amp; Enhancement Tasks
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Open Points &amp; Enhancement Tasks">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#critical-issues" class="md-nav__link">
-    <span class="md-ellipsis">
-      Critical Issues
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#feature-enhancements" class="md-nav__link">
-    <span class="md-ellipsis">
-      Feature Enhancements
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#code-improvements" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Improvements
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#documentation-testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Documentation &amp; Testing
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      Next Steps
+      Best Practices
     </span>
   </a>
   
@@ -1468,297 +1417,127 @@
   
 
 
-<h1 id="dell-poweredge-r630-openshift-multiboot-system-test-results">Dell PowerEdge R630 OpenShift Multiboot System - Test Results</h1>
-<p>This document contains the results of testing the functionality of the multiboot system components, along with a list of open points and enhancement tasks.</p>
-<h2 id="test-environment">Test Environment</h2>
-<ul>
-<li>TrueNAS Scale server: 192.168.2.245</li>
-<li>Dell R630 servers: 192.168.2.230, 192.168.2.232</li>
-<li>Testing date: December 4, 2025</li>
-</ul>
-<h2 id="component-testing-results">Component Testing Results</h2>
-<h3 id="1-truenas-authentication-connectivity">1. TrueNAS Authentication &amp; Connectivity</h3>
-<table>
-<thead>
-<tr>
-<th>Test</th>
-<th>Description</th>
-<th>Result</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1.1</td>
-<td>TrueNAS wrapper setup</td>
-<td>N/A</td>
-<td>Will test later with API key</td>
-</tr>
-<tr>
-<td>1.2</td>
-<td>API key authentication</td>
-<td>N/A</td>
-<td>Will test later with API key</td>
-</tr>
-<tr>
-<td>1.3</td>
-<td>Direct connection test</td>
-<td>✅ Success</td>
-<td>TrueNAS Scale server is accessible at https://192.168.2.245:444/api/v2.0</td>
-</tr>
-</tbody>
-</table>
-<h3 id="2-storage-configuration">2. Storage Configuration</h3>
-<table>
-<thead>
-<tr>
-<th>Test</th>
-<th>Description</th>
-<th>Result</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>2.1</td>
-<td>TrueNAS autodiscovery</td>
-<td>❌ Failed</td>
-<td>Test script attempts to connect on port 443, but TrueNAS is running on port 444</td>
-</tr>
-<tr>
-<td>2.2</td>
-<td>ISCSI targets configuration</td>
-<td>✅ Success</td>
-<td>iSCSI targets are properly defined in config file</td>
-</tr>
-<tr>
-<td>2.3</td>
-<td>NFS shares for ISOs</td>
-<td>❓ Unknown</td>
-<td>Could not verify NFS shares without TrueNAS connection</td>
-</tr>
-</tbody>
-</table>
-<h3 id="3-iso-generation-management">3. ISO Generation &amp; Management</h3>
-<table>
-<thead>
-<tr>
-<th>Test</th>
-<th>Description</th>
-<th>Result</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>3.1</td>
-<td>ISO generation parameters</td>
-<td>✅ Success</td>
-<td>All required parameters are available: version, rendezvous-ip, domain, pull-secret</td>
-</tr>
-<tr>
-<td>3.2</td>
-<td>ISO generation (dry run)</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>3.3</td>
-<td>ISO upload to TrueNAS</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h3 id="4-boot-management">4. Boot Management</h3>
-<table>
-<thead>
-<tr>
-<th>Test</th>
-<th>Description</th>
-<th>Result</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>4.1</td>
-<td>iSCSI target check</td>
-<td>✅ Success</td>
-<td>Target 'openshift_4_18' is available in configuration with correct IQN and IP</td>
-</tr>
-<tr>
-<td>4.2</td>
-<td>ISO availability check</td>
-<td>❌ Failed</td>
-<td>ISO for OpenShift 4.18 is not accessible at the expected location</td>
-</tr>
-<tr>
-<td>4.3</td>
-<td>Boot method switching</td>
-<td>✅ Success</td>
-<td>Script supports both iSCSI and ISO boot methods with version selection</td>
-</tr>
-</tbody>
-</table>
-<h2 id="open-points-enhancement-tasks">Open Points &amp; Enhancement Tasks</h2>
-<p>Based on testing and code review, here are the identified open points and suggested enhancements:</p>
-<h3 id="critical-issues">Critical Issues</h3>
+<h1 id="integrate-this-with-what-we-learned-from-identifien-the-device-from-truenas-scale">integrate this with what we learned from identifien the device from truenas scale</h1>
+<p>To integrate the process of identifying iSCSI devices from TrueNAS Scale with a Single Node OpenShift (SNO) agent-based installation, follow these steps to ensure reliable identification and configuration of the root disk. This approach combines persistent disk identification methods and TrueNAS Scale iSCSI setup principles.</p>
+<hr />
+<h2 id="steps-to-configure-iscsi-disk-for-sno-installation"><strong>Steps to Configure iSCSI Disk for SNO Installation</strong></h2>
+<h3 id="1-configure-iscsi-on-truenas-scale"><strong>1. Configure iSCSI on TrueNAS Scale</strong></h3>
+<p>Set up an iSCSI target and extent on TrueNAS Scale to serve as the boot disk for your SNO installation:</p>
 <ol>
-<li><strong>Port configuration mismatch</strong></li>
-<li>Status: Fixed ✅</li>
-<li>Description: Scripts were using port 443, but the server is running on port 444</li>
-<li>Solution: Updated scripts to use the correct port (444) by default</li>
-<li>
-<p>Priority: High</p>
-</li>
-<li>
-<p><strong>Missing ISOs</strong></p>
-</li>
-<li>Status: Issue detected</li>
-<li>Description: The ISO check failed - OpenShift installation ISOs are not available at the expected location</li>
-<li>Solution: Generate and upload ISOs for each supported OpenShift version</li>
-<li>Priority: High</li>
-</ol>
-<h3 id="feature-enhancements">Feature Enhancements</h3>
-<ol>
-<li><strong>Complete netboot.xyz integration</strong></li>
-<li>Status: Completed ✅</li>
-<li>Description: Added netboot support using custom URL (https://netboot.omnisack.nl)</li>
-<li>Tasks:<ul>
-<li>✅ Added 'netboot' as a method option in switch_openshift.py</li>
-<li>✅ Implemented UEFI HTTP boot configuration </li>
-<li>✅ Created setup_netboot.py for custom OpenShift menu</li>
+<li><strong>Create a ZFS Dataset or Zvol</strong>:<ul>
+<li>If using ZFS, create a dedicated dataset for the root disk.</li>
+<li>For block storage, create a Zvol under your dataset (ensure it is correctly configured as an extent).</li>
 </ul>
 </li>
-<li>
-<p>Priority: High</p>
-</li>
-<li>
-<p><strong>Multiple server orchestration</strong></p>
-</li>
-<li>Status: Partial</li>
-<li>Description: Current scripts support specifying servers individually, but lack batch operations</li>
-<li>Tasks:<ul>
-<li>Add capability to configure multiple servers simultaneously</li>
-<li>Implement parallel execution for faster deployment</li>
-<li>Create server group configuration files</li>
+<li><strong>Set Up iSCSI Block Share</strong>:<ul>
+<li>Use the TrueNAS Scale wizard or manual configuration:<ul>
+<li><strong>Extent Type</strong>: Select "Device" if using a full disk or Zvol.</li>
+<li><strong>Target IQN</strong>: Create a unique IQN (e.g., <code>iqn.2025-04.com.example:boot-disk</code>).</li>
+<li><strong>Portal Configuration</strong>: Add the IP address of your TrueNAS server.</li>
 </ul>
 </li>
-<li>
-<p>Priority: Medium</p>
-</li>
-<li>
-<p><strong>Boot disk backup/restore</strong></p>
-</li>
-<li>Status: Not implemented</li>
-<li>Description: No functionality to backup, snapshot or restore boot disks</li>
-<li>Tasks:<ul>
-<li>Implement ZFS snapshot creation for boot disks</li>
-<li>Add clone functionality for quick duplication</li>
-<li>Create snapshot scheduling and rotation</li>
 </ul>
 </li>
-<li>
-<p>Priority: Medium</p>
-</li>
-<li>
-<p><strong>Unified command interface</strong></p>
-</li>
-<li>Status: Not implemented</li>
-<li>Description: Currently using multiple scripts with different parameters</li>
-<li>Tasks:<ul>
-<li>Create a unified CLI tool with subcommands</li>
-<li>Standardize parameter naming across all operations</li>
-<li>Add interactive mode with guided prompts</li>
-</ul>
-</li>
-<li>Priority: Medium</li>
-</ol>
-<h3 id="code-improvements">Code Improvements</h3>
-<ol>
-<li><strong>Consistent connection parameters</strong></li>
-<li>Status: Fixed ✅</li>
-<li>Description: Scripts were using different methods to connect to TrueNAS </li>
-<li>Solution: Standardized connection handling to use port 444 across all scripts</li>
-<li>
-<p>Priority: High</p>
-</li>
-<li>
-<p><strong>Refactor command execution</strong></p>
-</li>
-<li>Status: Could be improved</li>
-<li>Description: Many scripts use direct subprocess calls to other Python scripts</li>
-<li>Solution: Refactor into proper Python modules with shared core functionality</li>
-<li>
-<p>Priority: Medium</p>
-</li>
-<li>
-<p><strong>Improve error handling</strong></p>
-</li>
-<li>Status: Basic</li>
-<li>Description: Current error handling is minimal, especially for network and API failures</li>
-<li>Solution: Implement comprehensive error handling with specific error types and recovery strategies</li>
-<li>
-<p>Priority: Medium</p>
-</li>
-<li>
-<p><strong>Implement logging framework</strong></p>
-<ul>
-<li>Status: Not implemented</li>
-<li>Description: Currently using print statements for output</li>
-<li>Solution: Replace with proper Python logging framework with configurable levels</li>
-<li>Priority: Medium</li>
+<li><strong>Record Persistent Identifiers</strong>:<ul>
+<li>Note the LUN ID, IQN, and portal IP address for use in Red Hat-based systems.</li>
 </ul>
 </li>
 </ol>
-<h3 id="documentation-testing">Documentation &amp; Testing</h3>
+<hr />
+<h3 id="2-discover-and-identify-the-iscsi-disk-on-red-hat-systems"><strong>2. Discover and Identify the iSCSI Disk on Red Hat Systems</strong></h3>
+<p>After configuring TrueNAS Scale, discover the iSCSI device on your Red Hat system using persistent attributes:</p>
 <ol>
-<li>
-<p><strong>Create network requirements document</strong></p>
-<ul>
-<li>Status: Not available</li>
-<li>Description: Missing documentation on network requirements</li>
-<li>Tasks:</li>
-<li>Document all required ports and protocols</li>
-<li>Create network topology diagram</li>
-<li>Add firewall configuration guidance</li>
-<li>Priority: Low</li>
-</ul>
+<li><strong>Login to the iSCSI Target</strong>:
+Use <code>iscsiadm</code> to discover and log in to the target:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>iscsiadm<span class="w"> </span>-m<span class="w"> </span>discovery<span class="w"> </span>-t<span class="w"> </span>sendtargets<span class="w"> </span>-p<span class="w"> </span><span class="p">&amp;</span>lt<span class="p">;</span>TrueNAS_IP<span class="p">&amp;</span>gt<span class="p">;</span>
+iscsiadm<span class="w"> </span>-m<span class="w"> </span>node<span class="w"> </span>--login
+</code></pre></div>
+<ol>
+<li><strong>Verify Disk Mapping</strong>:
+Check which local block device corresponds to the iSCSI LUN:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>lsblk
+iscsiadm<span class="w"> </span>--mode<span class="w"> </span>session<span class="w"> </span>-P<span class="w"> </span><span class="m">3</span>
+</code></pre></div>
+<p>This will display detailed mappings, including LUNs and their associated local devices (e.g., <code>/dev/sda</code>).
+3. <strong>Retrieve Persistent Attributes</strong>:
+Use <code>lsblk</code> or <code>udevadm</code> to gather persistent identifiers like WWN, serial number, or model:</p>
+<div class="highlight"><pre><span></span><code>lsblk<span class="w"> </span>-o<span class="w"> </span>NAME,WWN,MODEL,SERIAL
+udevadm<span class="w"> </span>info<span class="w"> </span>--query<span class="o">=</span>all<span class="w"> </span>--name<span class="o">=</span>/dev/sda<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>ID_
+</code></pre></div>
+<hr />
+<h3 id="3-configure-agent-based-installation-with-persistent-disk-hints"><strong>3. Configure Agent-Based Installation with Persistent Disk Hints</strong></h3>
+<p>Update your SNO agent configuration (<code>agent-config.yaml</code>) to ensure the installer uses the correct disk:</p>
+<h4 id="example-configuration">Example Configuration:</h4>
+<div class="highlight"><pre><span></span><code><span class="nt">hosts</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">master-0</span>
+<span class="w">    </span><span class="nt">rootDeviceHints</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">wwn</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0x50014ee2bae7ffa5&quot;</span><span class="w">  </span><span class="c1"># Replace with actual WWN</span>
+<span class="w">      </span><span class="nt">serialNumber</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BTHV507002P71P6GN&quot;</span><span class="w">  </span><span class="c1"># Replace with actual serial number</span>
+</code></pre></div>
+<h4 id="steps">Steps:</h4>
+<ol>
+<li>Replace <code>/dev/sda</code> with persistent identifiers like WWN or serial number.</li>
+<li>Validate that these identifiers match the iSCSI device discovered earlier.</li>
+</ol>
+<hr />
+<h3 id="4-integrate-automation-scripts"><strong>4. Integrate Automation Scripts</strong></h3>
+<p>In your automation scripts for creating volumes on TrueNAS Scale and configuring SNO installations:</p>
+<ol>
+<li><strong>Automate Volume Creation</strong>:
+Use TrueNAS APIs or CLI commands to create Zvols and configure iSCSI shares dynamically.</li>
+<li><strong>Automate Disk Discovery on Red Hat Systems</strong>:
+Run <code>iscsiadm</code> commands in your script to discover targets and retrieve persistent attributes automatically.</li>
+<li><strong>Update Agent Configuration Dynamically</strong>:
+Parse output from <code>lsblk</code> or <code>udevadm</code> to populate <code>rootDeviceHints</code> in <code>agent-config.yaml</code>.</li>
+</ol>
+<hr />
+<h3 id="5-verify-installation"><strong>5. Verify Installation</strong></h3>
+<p>After configuring the agent-based installation:</p>
+<ol>
+<li>Check that the installer uses the correct disk by inspecting logs for errors like <code>WARNING BootstrapInPlace.InstallationDisk: /dev/sda is ignored</code>.</li>
+<li>Validate that <code>/dev/disk/by-path/</code> or <code>/dev/disk/by-uuid/</code> points to the correct iSCSI device.</li>
+</ol>
+<hr />
+<h2 id="best-practices"><strong>Best Practices</strong></h2>
+<ol>
+<li>Use persistent identifiers (WWN, serial number) instead of transient names like <code>/dev/sda</code>.</li>
+<li>Ensure LUN IDs are unique across targets in TrueNAS Scale.</li>
+<li>Regularly test automation scripts in isolated environments before deploying them in production.</li>
+</ol>
+<p>By combining persistent disk identification methods with robust TrueNAS Scale configurations, you can reliably integrate SAN boot processes into your SNO installations without encountering device mapping issues.</p>
+<div>⁂</div>
+
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:1">
+<p>https://forum.proxmox.com/threads/proxmox-ve-and-zfs-over-iscsi-on-truenas-scale-my-steps-to-make-it-work.125387/&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
-<li>
-<p><strong>Add automated testing</strong></p>
-<ul>
-<li>Status: Basic test scripts available</li>
-<li>Description: Test coverage is limited to manual tests</li>
-<li>Tasks:</li>
-<li>Create unit tests for core functionality</li>
-<li>Implement integration tests for key workflows</li>
-<li>Add CI pipeline for automated testing</li>
-<li>Priority: Low</li>
-</ul>
+<li id="fn:2">
+<p>https://www.reddit.com/r/truenas/comments/pqk4b3/corescale_as_iscsi_initiator/&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+<li id="fn:3">
+<p>https://www.truenas.com/community/threads/adding-an-external-iscsi-share-to-truenas-scale.108988/&#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
+</li>
+<li id="fn:4">
+<p>https://www.reddit.com/r/homelab/comments/uiwqdn/what_am_i_missing_iscsi_between_truenas_scale_and/&#160;<a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">&#8617;</a></p>
+</li>
+<li id="fn:5">
+<p>https://www.truenas.com/docs/scale/scaletutorials/shares/iscsi/addingiscsishares/&#160;<a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">&#8617;</a></p>
+</li>
+<li id="fn:6">
+<p>https://www.truenas.com/community/threads/truenas-scale-22-iscsi-device-extend-not-show-device.104740/&#160;<a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">&#8617;</a></p>
+</li>
+<li id="fn:7">
+<p>https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/managing_storage_devices/configuring-an-iscsi-initiator_managing-storage-devices&#160;<a class="footnote-backref" href="#fnref:7" title="Jump back to footnote 7 in the text">&#8617;</a></p>
+</li>
+<li id="fn:8">
+<p>https://jonathangazeley.com/2021/01/05/using-truenas-to-provide-persistent-storage-for-kubernetes/&#160;<a class="footnote-backref" href="#fnref:8" title="Jump back to footnote 8 in the text">&#8617;</a></p>
 </li>
 </ol>
-<h2 id="next-steps">Next Steps</h2>
-<ol>
-<li>
-<p>Generate and upload OpenShift ISOs for testing:
-   <div class="highlight"><pre><span></span><code>./scripts/generate_openshift_iso.py<span class="w"> </span>--version<span class="w"> </span><span class="m">4</span>.18<span class="w"> </span>--rendezvous-ip<span class="w"> </span><span class="m">192</span>.168.2.230
-</code></pre></div></p>
-</li>
-<li>
-<p>Test the complete netboot functionality:
-   <div class="highlight"><pre><span></span><code>./scripts/setup_netboot.py<span class="w"> </span>--truenas-ip<span class="w"> </span><span class="m">192</span>.168.2.245
-./scripts/switch_openshift.py<span class="w"> </span>--server<span class="w"> </span><span class="m">192</span>.168.2.230<span class="w"> </span>--method<span class="w"> </span>netboot<span class="w"> </span>--netboot-menu<span class="w"> </span>openshift<span class="w"> </span>--check-only
-</code></pre></div></p>
-</li>
-<li>
-<p>Implement the next round of enhancements (in order of priority):</p>
-</li>
-<li>Multiple server orchestration</li>
-<li>Boot disk backup/restore functionality</li>
-<li>Unified command interface (r630-manager.py)</li>
-</ol>
+</div>
 
 
 
@@ -1786,7 +1565,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../TEST_PLAN/" title="Test Plan" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../ISCSI_OPENSHIFT_INTEGRATION/" title="iSCSI and OpenShift Integration" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1795,19 +1574,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Test Plan
+                iSCSI and OpenShift Integration
               </span>
             </div>
           </a>
         
         
-          <a href="../docs/TRUENAS_AUTHENTICATION/" title="TrueNAS Authentication" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../examples/truenas_auth.json.example" title="TrueNAS Auth Examples" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                TrueNAS Authentication
+                TrueNAS Auth Examples
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
@@ -1849,10 +1628,10 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "content.code.copy"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
       
     
   </body>
