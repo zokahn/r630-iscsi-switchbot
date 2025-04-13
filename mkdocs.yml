@@ -40,6 +40,7 @@ nav:
     - Deployment Tracking: docs/DEPLOYMENT_TRACKING.md
     - Secrets Provider System: docs/SECRETS_PROVIDER.md
     - iSCSI and OpenShift Integration: docs/ISCSI_OPENSHIFT_INTEGRATION.md
+    - iSCSI Target Creation: docs/ISCSI_TARGET_CREATION.md
     - iSCSI Block Devices with OpenShift Agent: docs/TRUENAS_ISCSI_FINDING_BLOCK_DEVICES_USE_OCP_AGENT_BASED.md
     - Brand Assets Guidelines: https://github.com/redhat/r630-iscsi-switchbot/blob/master/frontend/public/brand-assets/BRAND-ASSET-GUIDELINES.md
     - Examples: 
