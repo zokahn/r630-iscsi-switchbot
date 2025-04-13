@@ -61,6 +61,35 @@ Our scripts are designed to work with all R630 firmware versions, but we've foun
 1. **iDRAC Firmware below 2.40.40.40**: May not fully support some Redfish API features, but Dell scripts work reliably
 2. **Latest Available Firmware**: May have additional features, but isn't necessary for our implementation
 
+### R630 iDRAC Firmware Constraints 
+
+Through intrusive testing of the R630 iDRAC interfaces, we've discovered several important limitations:
+
+1. **Sequential Configuration Only**: 
+   - Only one attribute group can be configured at a time
+   - You must reboot between configuration operations
+   - Attempting to set multiple parameters at once causes errors
+
+2. **Configuration Job Handling**:
+   - Each successful configuration creates a pending job
+   - Further configurations will fail until the pending job completes (via reboot)
+   - Error: `Pending configuration values are already committed unable to perform another set operation`
+
+3. **Parameter Dependencies**:
+   - `TargetInfoViaDHCP` has strict dependencies with other attributes
+   - Setting this parameter first usually fails with: `Unable to modify the attribute because the attribute is read-only and depends on other attributes`
+   - Instead, set `IPMaskDNSViaDHCP` first, reboot, then set the target parameters
+
+4. **Validation vs. Actual Configuration**:
+   - Validation may show "iSCSI boot configuration looks correct" even when attributes appear blank
+   - Our validation accounts for this discrepancy by detecting both explicit iSCSI configurations and PXE fallback
+
+5. **Parameter Set Order**:
+   For best results, set parameters in this specific order:
+   - Set network parameters (`IPMaskDNSViaDHCP`) and reboot
+   - Set target parameters (`PrimaryTargetName`, `PrimaryTargetIPAddress`, etc.) and reboot
+   - Set any authentication parameters, if needed, and reboot
+
 ## Troubleshooting
 
 1. **iSCSI Boot Fails Despite Successful Configuration**:
