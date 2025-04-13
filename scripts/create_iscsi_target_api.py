@@ -296,173 +296,182 @@ def create_iscsi_resources_via_ssh(args, zvol_name, target_name, extent_name, dr
     
     ssh_cmd.extend([f"root@{args.truenas_ip}"])
     
-    # Create a shell script to execute on TrueNAS using the latest API approach
-    script_content = f"""#!/bin/bash
-set -e
-
-# Helper function for curl with common options
-api_call() {{
-    local method=$1
-    local endpoint=$2
-    local data=$3
+    # Create a remote shell script that will create the resources
+    # We'll use direct commands rather than trying to construct a complex script via Python
     
-    # Make the API call and format the response as JSON
-    curl -s -k -X $method \\
-         -H "Content-Type: application/json" \\
-         -H "Accept: application/json" \\
-         -d "$data" \\
-         "https://localhost/api/v2.0/$endpoint" | jq '.'
-}}
-
-# Check if target already exists
-echo "Checking if target {target_name} already exists..."
-TARGET_QUERY=$(curl -s -k -X GET "https://localhost/api/v2.0/iscsi/target?name={target_name}" | jq '.')
-
-if [ "$(echo "$TARGET_QUERY" | jq 'length')" -gt 0 ]; then
-    echo "Target {target_name} already exists - using existing target"
-    TARGET_ID=$(echo "$TARGET_QUERY" | jq '.[0].id')
-else
-    # Create target
-    echo "Creating target {target_name}..."
-    TARGET_DATA='{{
-        "name": "{target_name}",
-        "alias": "OpenShift {args.hostname}",
-        "groups": [
-            {{
-                "portal": 1,
-                "initiator": 1,
-                "auth": null
-            }}
-        ]
-    }}'
-    
-    TARGET_RESULT=$(api_call POST "iscsi/target" "$TARGET_DATA")
-    TARGET_ID=$(echo "$TARGET_RESULT" | jq '.id')
-    echo "Target created with ID: $TARGET_ID"
-fi
-
-# Check if extent already exists
-echo "Checking if extent {extent_name} already exists..."
-EXTENT_QUERY=$(curl -s -k -X GET "https://localhost/api/v2.0/iscsi/extent?name={extent_name}" | jq '.')
-
-if [ "$(echo "$EXTENT_QUERY" | jq 'length')" -gt 0 ]; then
-    echo "Extent {extent_name} already exists - using existing extent"
-    EXTENT_ID=$(echo "$EXTENT_QUERY" | jq '.[0].id')
-else
-    # Create extent
-    echo "Creating extent {extent_name}..."
-    EXTENT_DATA='{{
-        "name": "{extent_name}",
-        "type": "DISK",
-        "disk": "zvol/{zvol_name}",
-        "blocksize": 512,
-        "pblocksize": false,
-        "comment": "OpenShift {args.hostname} boot image",
-        "insecure_tpc": true,
-        "xen": false,
-        "rpm": "SSD",
-        "ro": false
-    }}'
-    
-    EXTENT_RESULT=$(api_call POST "iscsi/extent" "$EXTENT_DATA")
-    EXTENT_ID=$(echo "$EXTENT_RESULT" | jq '.id')
-    echo "Extent created with ID: $EXTENT_ID"
-fi
-
-# Check if association already exists
-echo "Checking if target-extent association already exists..."
-ASSOC_QUERY=$(curl -s -k -X GET "https://localhost/api/v2.0/iscsi/targetextent?target=$TARGET_ID&extent=$EXTENT_ID" | jq '.')
-
-if [ "$(echo "$ASSOC_QUERY" | jq 'length')" -gt 0 ]; then
-    echo "Target-extent association already exists - skipping"
-else
-    # Associate target with extent
-    echo "Associating extent with target..."
-    ASSOC_DATA='{{
-        "target": '$TARGET_ID',
-        "extent": '$EXTENT_ID',
-        "lunid": 0
-    }}'
-    
-    ASSOC_RESULT=$(api_call POST "iscsi/targetextent" "$ASSOC_DATA")
-    echo "Target and extent associated successfully"
-fi
-
-# Make sure iSCSI service is running
-echo "Ensuring iSCSI service is running..."
-SERVICE_STATUS=$(curl -s -k -X GET "https://localhost/api/v2.0/service/id/iscsitarget" | jq '.state')
-if [ "$SERVICE_STATUS" != "\"RUNNING\"" ]; then
-    echo "Starting iSCSI service..."
-    curl -s -k -X POST -d '{"service": "iscsitarget"}' "https://localhost/api/v2.0/service/start"
-fi
-
-# Output target and extent IDs for script to capture
-echo "RESULT_TARGET_ID=$TARGET_ID"
-echo "RESULT_EXTENT_ID=$EXTENT_ID"
-echo "SUCCESS=true"
-"""
+    # First check for existing target
+    target_check_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/target?name={target_name}' | jq 'length'"]
+    extent_check_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/extent?name={extent_name}' | jq 'length'"]
     
     if dry_run:
-        print("\nDRY RUN: Would create iSCSI resources with this script on the remote server:")
-        print("-----------------------------------")
-        print(script_content)
-        print("-----------------------------------")
-        return True
+        print("\nDRY RUN: Would execute these SSH commands:")
+        print(f"Target check: {' '.join(target_check_cmd)}")
+        print(f"Extent check: {' '.join(extent_check_cmd)}")
+        print("Then would create target, extent, association as needed")
+        return (0, 0)  # Return dummy values for dry run
     
     try:
-        # Create a temporary script file locally
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp:
-            temp.write(script_content)
-            temp_path = temp.name
-        
-        # Make it executable
-        import os
-        os.chmod(temp_path, 0o755)
-        
-        # Execute the script on the remote server
         import subprocess
-        print(f"Creating iSCSI resources via SSH...")
-        remote_cmd = ssh_cmd + ["bash -s"]
+        import json
+        import tempfile
         
-        with open(temp_path, 'r') as script_file:
-            result = subprocess.run(remote_cmd, stdin=script_file, check=True, 
-                                   capture_output=True, text=True)
+        # Check if target exists
+        print("Checking if target exists...")
+        target_result = subprocess.run(target_check_cmd, check=True, capture_output=True, text=True)
+        target_exists = target_result.stdout.strip() != "0"
         
-        # Parse the output to get the target and extent IDs and success status
-        output = result.stdout
-        print(output)  # Show full output for debugging
+        # Check if extent exists
+        print("Checking if extent exists...")
+        extent_result = subprocess.run(extent_check_cmd, check=True, capture_output=True, text=True)
+        extent_exists = extent_result.stdout.strip() != "0"
         
-        # Check if successful
-        if "SUCCESS=true" in output:
-            # Try to extract target and extent IDs
-            import re
-            target_id_match = re.search(r'RESULT_TARGET_ID=(\d+)', output)
-            extent_id_match = re.search(r'RESULT_EXTENT_ID=(\d+)', output)
+        # Create target if it doesn't exist
+        if not target_exists:
+            print(f"Creating target {target_name}...")
+            target_data = {
+                "name": target_name,
+                "alias": f"OpenShift {args.hostname}",
+                "groups": [
+                    {
+                        "portal": 1,
+                        "initiator": 1,
+                        "auth": None
+                    }
+                ]
+            }
             
-            if target_id_match and extent_id_match:
-                target_id = target_id_match.group(1)
-                extent_id = extent_id_match.group(1)
-                print(f"Successfully created iSCSI resources via SSH")
-                return (target_id, extent_id)
-            else:
-                print(f"Successfully created iSCSI resources but could not extract IDs")
-                return (0, 0)  # Return dummy IDs
+            # Write the target data to a temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(target_data, f)
+                target_file = f.name
+            
+            # SCP the file to the TrueNAS server
+            scp_cmd = ["scp"]
+            if hasattr(args, 'ssh_key') and args.ssh_key:
+                scp_cmd.extend(["-i", args.ssh_key])
+            scp_cmd.extend([target_file, f"root@{args.truenas_ip}:/tmp/target.json"])
+            subprocess.run(scp_cmd, check=True)
+            
+            # Create the target
+            create_target_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d @/tmp/target.json 'https://localhost/api/v2.0/iscsi/target' | jq '.id'"]
+            target_id_result = subprocess.run(create_target_cmd, check=True, capture_output=True, text=True)
+            target_id = target_id_result.stdout.strip()
         else:
-            print(f"Failed to create iSCSI resources - no success marker found")
-            return False
+            # Get the target ID
+            get_target_id_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/target?name={target_name}' | jq '.[0].id'"]
+            target_id_result = subprocess.run(get_target_id_cmd, check=True, capture_output=True, text=True)
+            target_id = target_id_result.stdout.strip()
+            print(f"Target {target_name} already exists with ID {target_id}")
+        
+        # Create extent if it doesn't exist
+        if not extent_exists:
+            print(f"Creating extent {extent_name}...")
+            extent_data = {
+                "name": extent_name,
+                "type": "DISK",
+                "disk": f"zvol/{zvol_name}",
+                "blocksize": 512,
+                "pblocksize": False,
+                "comment": f"OpenShift {args.hostname} boot image",
+                "insecure_tpc": True,
+                "xen": False,
+                "rpm": "SSD",
+                "ro": False
+            }
             
+            # Write the extent data to a temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(extent_data, f)
+                extent_file = f.name
+            
+            # SCP the file to the TrueNAS server
+            scp_cmd = ["scp"]
+            if hasattr(args, 'ssh_key') and args.ssh_key:
+                scp_cmd.extend(["-i", args.ssh_key])
+            scp_cmd.extend([extent_file, f"root@{args.truenas_ip}:/tmp/extent.json"])
+            subprocess.run(scp_cmd, check=True)
+            
+            # Create the extent
+            create_extent_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d @/tmp/extent.json 'https://localhost/api/v2.0/iscsi/extent' | jq '.id'"]
+            extent_id_result = subprocess.run(create_extent_cmd, check=True, capture_output=True, text=True)
+            extent_id = extent_id_result.stdout.strip()
+        else:
+            # Get the extent ID
+            get_extent_id_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/extent?name={extent_name}' | jq '.[0].id'"]
+            extent_id_result = subprocess.run(get_extent_id_cmd, check=True, capture_output=True, text=True)
+            extent_id = extent_id_result.stdout.strip()
+            print(f"Extent {extent_name} already exists with ID {extent_id}")
+        
+        # Check if association exists
+        check_assoc_cmd = ssh_cmd + [f"curl -s -k -X GET 'https://localhost/api/v2.0/iscsi/targetextent?target={target_id}&extent={extent_id}' | jq 'length'"]
+        assoc_result = subprocess.run(check_assoc_cmd, check=True, capture_output=True, text=True)
+        assoc_exists = assoc_result.stdout.strip() != "0"
+        
+        if not assoc_exists:
+            print("Creating target-extent association...")
+            assoc_data = {
+                "target": int(target_id.strip('"')),
+                "extent": int(extent_id.strip('"')),
+                "lunid": 0
+            }
+            
+            # Write the association data to a temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(assoc_data, f)
+                assoc_file = f.name
+            
+            # SCP the file to the TrueNAS server
+            scp_cmd = ["scp"]
+            if hasattr(args, 'ssh_key') and args.ssh_key:
+                scp_cmd.extend(["-i", args.ssh_key])
+            scp_cmd.extend([assoc_file, f"root@{args.truenas_ip}:/tmp/assoc.json"])
+            subprocess.run(scp_cmd, check=True)
+            
+            # Create the association
+            create_assoc_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d @/tmp/assoc.json 'https://localhost/api/v2.0/iscsi/targetextent'"]
+            subprocess.run(create_assoc_cmd, check=True)
+            print("Target-extent association created successfully")
+        else:
+            print("Target-extent association already exists")
+        
+        # Make sure iSCSI service is running
+        print("Ensuring iSCSI service is running...")
+        check_service_cmd = ssh_cmd + ["curl -s -k -X GET 'https://localhost/api/v2.0/service/id/iscsitarget' | jq '.state'"]
+        service_result = subprocess.run(check_service_cmd, check=True, capture_output=True, text=True)
+        service_running = service_result.stdout.strip() == '"RUNNING"'
+        
+        if not service_running:
+            print("Starting iSCSI service...")
+            start_service_cmd = ssh_cmd + ["curl -s -k -X POST -H 'Content-Type: application/json' -d '{\"service\": \"iscsitarget\"}' 'https://localhost/api/v2.0/service/start'"]
+            subprocess.run(start_service_cmd, check=True)
+            print("iSCSI service started")
+        else:
+            print("iSCSI service is already running")
+        
+        # Clean up temporary files on the server
+        cleanup_cmd = ssh_cmd + ["rm -f /tmp/target.json /tmp/extent.json /tmp/assoc.json"]
+        subprocess.run(cleanup_cmd, check=False)
+        
+        # Clean up local temporary files
+        if 'target_file' in locals():
+            import os
+            os.unlink(target_file)
+        if 'extent_file' in locals():
+            os.unlink(extent_file)
+        if 'assoc_file' in locals():
+            os.unlink(assoc_file)
+            
+        print("Successfully created all iSCSI resources")
+        return (target_id.strip('"'), extent_id.strip('"'))
+        
     except subprocess.CalledProcessError as e:
-        print(f"Error creating iSCSI resources via SSH: {e}")
-        print(f"STDERR: {e.stderr}")
+        print(f"Error executing SSH command: {e}")
+        print(f"Command output: {e.stdout if hasattr(e, 'stdout') else 'no output'}")
+        print(f"Command error: {e.stderr if hasattr(e, 'stderr') else 'no error output'}")
         return False
     except Exception as e:
         print(f"Error in SSH execution: {e}")
         return False
-    finally:
-        # Clean up the temporary file
-        if 'temp_path' in locals():
-            os.unlink(temp_path)
 
 def create_zvol_via_ssh(args, zvol_name, size_str, dry_run=False):
     """Create a ZFS volume using SSH commands instead of API"""
