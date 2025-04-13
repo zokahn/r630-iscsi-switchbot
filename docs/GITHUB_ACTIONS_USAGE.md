@@ -20,7 +20,7 @@ Before using the GitHub Actions workflow, ensure you have:
    ```bash
    # macOS (Homebrew)
    brew install gh
-   
+
    # Linux
    sudo apt install gh
    ```
@@ -32,8 +32,7 @@ Before using the GitHub Actions workflow, ensure you have:
 
 3. **Required GitHub Secrets Set Up**:
    - `OPENSHIFT_PULL_SECRET`: Your Red Hat OpenShift pull secret
-   - `TRUENAS_SSH_KEY`: SSH private key for TrueNAS access
-   - `TRUENAS_KNOWN_HOSTS`: Known hosts entry for TrueNAS server
+   - `TRUENAS_API_KEY`: API key for TrueNAS access
 
 ## How to Configure GitHub Secrets
 
@@ -45,23 +44,13 @@ Before using the GitHub Actions workflow, ensure you have:
      - Content: Your OpenShift pull secret (from https://console.redhat.com/openshift/install/pull-secret)
      - Format: JSON string
 
-   - **TRUENAS_SSH_KEY**:
-     - Content: SSH private key for TrueNAS access
+   - **TRUENAS_API_KEY**:
+     - Content: TrueNAS API key for authentication
      - To generate:
-       ```bash
-       ssh-keygen -t ed25519 -f truenas_key -N ""
-       # Then copy the public key to TrueNAS
-       ssh-copy-id -i truenas_key.pub root@192.168.2.245
-       # Use the private key content for the secret
-       cat truenas_key
-       ```
-
-   - **TRUENAS_KNOWN_HOSTS**:
-     - Content: SSH known hosts entry for TrueNAS
-     - To generate:
-       ```bash
-       ssh-keyscan -H 192.168.2.245
-       ```
+       1. Log in to TrueNAS web interface
+       2. Navigate to user menu (top right) → "API Keys"
+       3. Create a new API key
+       4. Copy the generated key for the GitHub secret
 
 ## Available Workflows
 
@@ -160,8 +149,8 @@ This script:
 The workflows produce the following outputs:
 
 ### ISO Generation Workflow
-1. **GitHub Artifacts**: The ISO is uploaded as a GitHub artifact, available for 7 days
-2. **TrueNAS Upload**: The ISO is uploaded to TrueNAS at `/mnt/tank/openshift_isos/{version}/agent.x86_64.iso`
+1. **GitHub Artifacts**: The ISO is uploaded as a GitHub artifact available for 7 days
+2. **TrueNAS Upload**: The ISO is uploaded to TrueNAS via the API at `/mnt/tank/openshift_isos/{version}/agent.x86_64.iso`
 3. **HTTP Access**: The ISO is accessible via HTTP at `http://{truenas_ip}/openshift_isos/{version}/agent.x86_64.iso`
 
 ### Integration Test Workflow
@@ -175,7 +164,8 @@ If the workflow fails, check:
 1. **Workflow Logs**: Examine the workflow logs in GitHub Actions for error messages
 2. **Secret Values**: Verify that all secrets are correctly set up
 3. **TrueNAS Connectivity**: Ensure the TrueNAS server is accessible from GitHub Actions runners
-4. **SSH Key Permissions**: Verify the SSH key has proper permissions on TrueNAS
+4. **API Key Permissions**: Verify the API key has proper permissions on TrueNAS
+5. **API Endpoints**: Confirm the TrueNAS API is available on the expected port (typically 444)
 
 If you need to debug the workflow locally, you can use the following approach:
 

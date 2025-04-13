@@ -72,39 +72,20 @@ Our test detected missing secrets that are required for the workflows to functio
    - Name: `OPENSHIFT_PULL_SECRET`
    - Value: Paste the entire JSON content of your pull secret
 
-### 2. TrueNAS SSH Key
+### 2. TrueNAS API Key
 
-Generate an SSH key for TrueNAS access and add it as a secret:
+Generate an API key for TrueNAS access and add it as a secret:
 
-```bash
-# Generate a new key
-ssh-keygen -t ed25519 -f truenas_key -N ""
-
-# Copy the public key to TrueNAS
-ssh-copy-id -i truenas_key.pub root@192.168.2.245
-
-# Add the private key as a secret
-cat truenas_key
-```
-
-1. In your GitHub repository, go to **Settings** > **Secrets and variables** > **Actions**
-2. Create a new repository secret:
-   - Name: `TRUENAS_SSH_KEY`
-   - Value: Copy the entire content of the private key file (`truenas_key`)
-
-### 3. TrueNAS Known Hosts
-
-Generate a known hosts entry for TrueNAS and add it as a secret:
-
-```bash
-# Generate the known hosts entry
-ssh-keyscan -H 192.168.2.245
-```
-
-1. In your GitHub repository, go to **Settings** > **Secrets and variables** > **Actions**
-2. Create a new repository secret:
-   - Name: `TRUENAS_KNOWN_HOSTS`
-   - Value: Copy the output from the ssh-keyscan command
+1. Log in to the TrueNAS web interface
+2. Navigate to the user menu (top right) → "API Keys"
+3. Click "Add" and provide:
+   - Name: "GitHub Actions Integration"
+   - Optionally set an expiration date
+4. Click "Save" and copy the generated API key
+5. In your GitHub repository, go to **Settings** > **Secrets and variables** > **Actions**
+6. Create a new repository secret:
+   - Name: `TRUENAS_API_KEY`
+   - Value: Paste the entire API key
 
 ## Verification
 
