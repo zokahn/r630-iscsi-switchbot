@@ -4,28 +4,22 @@ This document describes how to create iSCSI targets on TrueNAS Scale for Dell R6
 
 ## Overview
 
-We provide two methods for creating iSCSI targets on TrueNAS Scale:
+The `create_iscsi_target_api.py` script uses the TrueNAS REST API to create and manage iSCSI targets. This comprehensive solution includes system health checks, resource discovery, intelligent provisioning, and housekeeping capabilities.
 
-1. **API-based Method (Recommended)**: The `create_iscsi_target_api.py` script uses the TrueNAS REST API for a comprehensive solution that includes system health checks, resource discovery, intelligent provisioning, and housekeeping capabilities.
-
-2. **SSH-based Method (Legacy)**: The `iscsi_target_template.sh` script uses SSH and the TrueNAS middleware client (`midclt`) to create the necessary components.
-
-Both methods create:
+The script creates all necessary components:
 - A ZFS volume (zvol) to store the OpenShift boot image
 - An iSCSI target with the appropriate IQN
 - An extent linking the zvol to the iSCSI subsystem
 - An association between the target and the extent
 
-## API-based Method (Recommended)
-
-### Requirements
+## Requirements
 
 - TrueNAS API key with appropriate permissions
 - Python 3.6+ with the requests library
 
-### Workflow
+## Workflow
 
-The API-based method follows a comprehensive workflow:
+The API-based workflow follows these steps:
 
 1. **System Verification**: Checks connectivity, validates credentials, and verifies system health
 2. **Resource Discovery**: Examines existing storage pools, zvols, targets, extents, and associations
@@ -34,7 +28,7 @@ The API-based method follows a comprehensive workflow:
 5. **Service Management**: Ensures the iSCSI service is running
 6. **Housekeeping (Optional)**: Identifies and optionally removes unused resources
 
-### Usage
+## Usage
 
 ```bash
 ./scripts/create_iscsi_target_api.py --server-id ID --hostname NAME --api-key KEY [options]
@@ -58,9 +52,9 @@ The API-based method follows a comprehensive workflow:
 - `--dry-run`: Show operations without executing them
 - `--verbose`: Enable verbose output
 
-### Examples
+## Examples
 
-#### Discovery Mode
+### Discovery Mode
 
 To discover existing resources without making any changes:
 
@@ -68,69 +62,33 @@ To discover existing resources without making any changes:
 ./scripts/create_iscsi_target_api.py --server-id 02 --hostname dumpty --api-key "YOUR_API_KEY" --discover-only
 ```
 
-#### Create iSCSI Target with Default Settings
+### Create iSCSI Target with Default Settings
 
 ```bash
 ./scripts/create_iscsi_target_api.py --server-id 02 --hostname dumpty --api-key "YOUR_API_KEY"
 ```
 
-#### Create iSCSI Target with Specific OpenShift Version
+### Create iSCSI Target with Specific OpenShift Version
 
 ```bash
 ./scripts/create_iscsi_target_api.py --server-id 03 --hostname humpty --openshift-version 4.14 --api-key "YOUR_API_KEY"
 ```
 
-#### Perform Housekeeping Check
+### Perform Housekeeping Check
 
 ```bash
 ./scripts/create_iscsi_target_api.py --server-id 02 --hostname dumpty --api-key "YOUR_API_KEY" --housekeeping
 ```
 
-#### Perform Housekeeping and Cleanup
+### Perform Housekeeping and Cleanup
 
 ```bash
 ./scripts/create_iscsi_target_api.py --server-id 02 --hostname dumpty --api-key "YOUR_API_KEY" --housekeeping --cleanup
 ```
 
-## SSH-based Method (Legacy)
-
-### Requirements
-
-- SSH access to the TrueNAS Scale server with root privileges
-- SSH key configured for passwordless authentication (recommended)
-- `jq` installed on the TrueNAS server (should be included by default)
-
-### Usage
-
-```bash
-./scripts/iscsi_target_template.sh --server-id ID --hostname NAME [options]
-```
-
-### Required Parameters
-
-- `--server-id ID`: Server ID (e.g., 01, 02) used in naming convention
-- `--hostname NAME`: Server hostname (used in descriptions)
-
-### Optional Parameters
-
-- `--openshift-version VERSION`: OpenShift version (default: stable)
-- `--truenas-ip IP`: TrueNAS IP address (default: 192.168.2.245)
-- `--zvol-size SIZE`: Size of the zvol to create (default: 500G)
-- `--zfs-pool POOL`: ZFS pool name to use (default: test)
-- `--ssh-key PATH`: Path to SSH key for TrueNAS authentication
-- `--dry-run`: Generate commands but don't execute them
-- `--skip-zvol-check`: Skip checking if zvol exists
-- `--force`: Force recreate zvol if it exists
-
-### Examples
-
-```bash
-./scripts/iscsi_target_template.sh --server-id 02 --hostname dumpty
-```
-
 ## Generated Names
 
-Both methods generate standardized names for all components:
+The script generates standardized names for all components:
 
 - **ZVOL Path**: `<zfs-pool>/openshift_installations/r630_<server-id>_<version>`
 - **Target IQN**: `iqn.2005-10.org.freenas.ctl:iscsi.r630-<server-id>.openshift<version>`
@@ -159,10 +117,10 @@ If you encounter issues:
 
 ## Best Practices
 
-- Use the API-based method for new deployments and greater reliability
-- Use portal/initiator groups that are already configured on your TrueNAS system
 - Perform regular housekeeping to clean up unused resources
 - Always verify free space before creating large zvols
+- Use meaningful hostnames for better organization
+- Use discovery mode before making changes in production
 
 ## Related Documentation
 
