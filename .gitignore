@@ -45,3 +45,12 @@ Thumbs.db
 deployment_*.log
 validation_*.log
 set_network_properties.ini
+
+# Backup files
+*.bak
+
+# Generated deployment configurations
+config/deployments/
+
+# Test reports
+test_report.md

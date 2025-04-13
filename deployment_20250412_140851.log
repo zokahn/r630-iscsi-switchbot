@@ -1,8 +1,0 @@
-OpenShift Multiboot System - Deployment Log
-Started at Sat Apr 12 14:08:51 CEST 2025
-----------------------------------------
-2025-04-12 14:08:51 - OpenShift Multiboot System - Final Deployment
-2025-04-12 14:09:02 - Step 1: Generate OpenShift ISOs
-2025-04-12 14:09:02 - COMMAND: ./scripts/generate_openshift_iso.py --version 4.16 --rendezvous-ip 192.168.2.230
-
-2025-04-12 16:01:24 - FAILED with status 143

@@ -40,6 +40,7 @@ Key documentation files:
 
 - [Deployment Tracking](docs/DEPLOYMENT_TRACKING.md): Managing multiple servers and deployments
 - [OpenShift Values System](docs/OPENSHIFT_VALUES_SYSTEM.md): Configuration management
+- [iSCSI Redfish Integration](docs/ISCSI_REDFISH_INTEGRATION.md): Advanced iSCSI boot configuration
 - [GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md): Setting up workflows
 - [TrueNAS Authentication](docs/TRUENAS_AUTHENTICATION.md): Storage setup
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md): Common issues and solutions
