@@ -27,24 +27,55 @@ import tempfile
 import shutil
 import requests
 import yaml
+import logging
 from pathlib import Path
 
-# Import our secrets provider
+# Set up basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('generate_minimal_iso')
+
+# Import our modules
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from secrets_provider import process_references, get_secret
 except ImportError:
-    # If running from a different directory, try to import using the script's directory
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    try:
-        from secrets_provider import process_references, get_secret
-    except ImportError:
-        # Define placeholder functions to avoid errors if the module is missing
-        def process_references(data):
-            return data
+    # Define placeholder functions to avoid errors if the module is missing
+    def process_references(data):
+        return data
 
-        def get_secret(path, key=None):
-            print(f"Warning: secrets_provider module not found, can't retrieve secret from {path}")
-            return None
+    def get_secret(path, key=None):
+        logger.warning(f"Warning: secrets_provider module not found, can't retrieve secret from {path}")
+        return None
+
+# Import S3 client
+try:
+    from s3_client import S3Client
+except ImportError:
+    logger.warning("S3 client module not found, S3 functionality will be disabled")
+    # Define a placeholder class to avoid errors if the module is missing
+    class S3Client:
+        def __init__(self):
+            logger.error("S3 client module not available. Please install the s3_client.py module.")
+            
+        def upload_iso(self, *args, **kwargs):
+            logger.error("S3 client module not available. Cannot upload ISO to S3.")
+            return False
+            
+        def download_latest_iso(self, *args, **kwargs):
+            logger.error("S3 client module not available. Cannot download ISO from S3.")
+            return False
+            
+        def binary_exists(self, *args, **kwargs):
+            return False
+            
+        def download_binary(self, *args, **kwargs):
+            return False
+            
+        def upload_binary(self, *args, **kwargs):
+            return False
 
 def download_openshift_installer(version, output_dir):
     """
@@ -327,12 +358,27 @@ def main():
     )
     parser.add_argument("--config", required=True, help="Path to OpenShift configuration YAML file")
     parser.add_argument("--version", default="4.18", help="OpenShift version (e.g., 4.18 or 4.18.0)")
-    parser.add_argument("--truenas-ip", default="192.168.2.245", help="TrueNAS IP address")
-    parser.add_argument("--truenas-user", default="root", help="TrueNAS SSH username")
-    parser.add_argument("--private-key", help="Path to SSH private key for TrueNAS authentication")
+    
+    # TrueNAS upload options
+    truenas_group = parser.add_argument_group('TrueNAS Upload')
+    truenas_group.add_argument("--truenas-ip", default="192.168.2.245", help="TrueNAS IP address")
+    truenas_group.add_argument("--truenas-user", default="root", help="TrueNAS SSH username")
+    truenas_group.add_argument("--private-key", help="Path to SSH private key for TrueNAS authentication")
+    truenas_group.add_argument("--skip-truenas", action="store_true", help="Skip uploading to TrueNAS")
+    
+    # S3 storage options
+    s3_group = parser.add_argument_group('S3 Storage')
+    s3_group.add_argument("--use-s3", action="store_true", help="Enable S3 storage integration")
+    s3_group.add_argument("--s3-server-id", help="Server ID for S3 storage (e.g., 01)")
+    s3_group.add_argument("--s3-hostname", help="Server hostname for S3 storage")
+    s3_group.add_argument("--skip-s3-upload", action="store_true", help="Skip uploading to S3")
+    s3_group.add_argument("--try-s3-download", action="store_true", help="Try to download ISO from S3 before generating")
+    
+    # Authentication options
     parser.add_argument("--pull-secret", help="Path to pull secret for OpenShift. If not provided, will try to find it")
     parser.add_argument("--ssh-key", help="Path to SSH public key for OpenShift. If not provided, will use ~/.ssh/id_rsa.pub")
-    parser.add_argument("--skip-upload", action="store_true", help="Skip uploading to TrueNAS")
+    
+    # Other options
     parser.add_argument("--output-dir", help="Custom output directory (default: temporary directory)")
     
     args = parser.parse_args()
@@ -346,11 +392,54 @@ def main():
         output_dir = tempfile.mkdtemp()
         should_cleanup = True
     
-    print(f"Using output directory: {output_dir}")
+    logger.info(f"Using output directory: {output_dir}")
+    
+    # Initialize S3 client if needed
+    s3_client = None
+    if args.use_s3:
+        try:
+            s3_client = S3Client()
+            logger.info("S3 client initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 client: {e}")
+            if args.try_s3_download:
+                logger.error("Cannot proceed with S3 download option enabled")
+                return 1
     
     try:
+        # Extract server info from config path if not explicitly provided
+        if args.use_s3 and (not args.s3_server_id or not args.s3_hostname):
+            config_path = Path(args.config)
+            # Try to parse server ID and hostname from config path
+            # Assuming pattern like: config/deployments/r630-01/r630-01-humpty-20250413091118.yaml
+            if 'deployments' in str(config_path):
+                parts = config_path.name.split('-')
+                if len(parts) >= 3 and parts[0] == 'r630':
+                    if not args.s3_server_id:
+                        args.s3_server_id = parts[1]
+                        logger.info(f"Extracted server ID: {args.s3_server_id}")
+                    if not args.s3_hostname and len(parts) >= 4:
+                        # Extract hostname (assumes format like r630-01-humpty-timestamp.yaml)
+                        args.s3_hostname = parts[2]
+                        logger.info(f"Extracted hostname: {args.s3_hostname}")
+        
+        # Check if we need to download existing ISO from S3
+        if args.use_s3 and args.try_s3_download and s3_client and args.s3_server_id and args.s3_hostname:
+            logger.info(f"Checking S3 for existing ISO for server-{args.s3_server_id}-{args.s3_hostname}-{args.version}")
+            
+            # Define download path in output directory
+            iso_download_path = os.path.join(output_dir, "agent.x86_64.iso")
+            
+            # Try to download the ISO
+            if s3_client.download_latest_iso(args.s3_server_id, args.s3_hostname, args.version, iso_download_path):
+                logger.info(f"Successfully downloaded ISO from S3 to {iso_download_path}")
+                # Skip the rest of the ISO generation process
+                return 0
+            else:
+                logger.info("No matching ISO found in S3, will generate a new one")
+        
         # Load the configuration values file
-        print(f"Loading configuration from {args.config}")
+        logger.info(f"Loading configuration from {args.config}")
         values = load_values_from_file(args.config)
         if not values:
             return 1
@@ -420,8 +509,19 @@ def main():
         if not iso_path:
             return 1
         
+        # Upload to S3 if enabled
+        if args.use_s3 and s3_client and not args.skip_s3_upload:
+            if args.s3_server_id and args.s3_hostname:
+                logger.info("Uploading ISO to S3 storage")
+                if s3_client.upload_iso(iso_path, args.s3_server_id, args.s3_hostname, args.version):
+                    logger.info("Successfully uploaded ISO to S3")
+                else:
+                    logger.error("Failed to upload ISO to S3")
+            else:
+                logger.error("S3 upload requires --s3-server-id and --s3-hostname")
+        
         # Upload to TrueNAS if not skipped
-        if not args.skip_upload:
+        if not args.skip_truenas:
             if not upload_to_truenas(
                 iso_path, 
                 args.version, 
@@ -431,21 +531,21 @@ def main():
             ):
                 return 1
             
-            print(f"\nThe ISO has been uploaded to TrueNAS at {args.truenas_ip}")
-            print(f"It can be accessed via HTTP at: http://{args.truenas_ip}/openshift_isos/{args.version}/agent.x86_64.iso")
+            logger.info(f"ISO uploaded to TrueNAS at {args.truenas_ip}")
+            logger.info(f"It can be accessed via HTTP at: http://{args.truenas_ip}/openshift_isos/{args.version}/agent.x86_64.iso")
         
         # Print information about Day 2 operations
         print_day2_operations()
         
-        print("\nISO generation completed successfully!")
-        print(f"ISO file: {iso_path}")
+        logger.info("\nISO generation completed successfully!")
+        logger.info(f"ISO file: {iso_path}")
         
         return 0
     
     finally:
         # Clean up temporary directory if we created one
         if should_cleanup:
-            print(f"Cleaning up temporary directory: {output_dir}")
+            logger.info(f"Cleaning up temporary directory: {output_dir}")
             shutil.rmtree(output_dir, ignore_errors=True)
 
 if __name__ == "__main__":
