@@ -73,3 +73,4 @@ test_iso_output/
 .openshift_install_state.json
 agent.x86_64.iso
 test_run_dumpty/
+.coverage
