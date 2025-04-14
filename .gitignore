@@ -74,3 +74,17 @@ test_iso_output/
 agent.x86_64.iso
 test_run_dumpty/
 .coverage
+# Workflow fix files
+.github/workflows/ci-component-tests-fixed.yml
+.github/workflows_fixed/
+docker-compose-fixes.patch
+docs/CI_WORKFLOW_FIXES.md
+docs/CI_WORKFLOW_FIXES_PLAN.md
+fix_docker_compose.sh
+fix_docker_compose_correctly.sh
+fix_syntax.sh
+fix_workflows.py
+fix_workflows.sh
+
+# Example directory
+examples/
