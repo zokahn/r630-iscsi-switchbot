@@ -50,7 +50,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --statistics >> quality-report.md
       
       - name: Upload quality reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-quality-reports
           path: |
@@ -92,7 +92,7 @@ jobs:
           python -m pytest tests/unit/${{ matrix.test-group }} --cov=./${{ matrix.test-group }} --cov-report=xml -v
       
       - name: Upload coverage to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.python-version }}-${{ matrix.test-group }}
           path: coverage.xml
@@ -114,7 +114,7 @@ jobs:
           echo "See detailed test logs in GitHub Actions Job output." >> test-summary.md
           
       - name: Upload test summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-summary
           path: test-summary.md

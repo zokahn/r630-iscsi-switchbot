@@ -128,7 +128,7 @@ jobs:
           rm $PULL_SECRET_FILE
           
       - name: Upload ISO as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openshift-${{ matrix.version }}-iso
           path: iso-output/${{ matrix.version }}/agent-${{ matrix.version }}.x86_64.iso
@@ -194,7 +194,7 @@ jobs:
           fi
           
       - name: Upload Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: iso-generation-summary
           path: iso-summary.md

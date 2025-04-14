@@ -97,7 +97,7 @@ jobs:
           echo "Tests completed. See logs for details." >> ${{ matrix.component }}-report.md
           
       - name: Upload component report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.component }}-test-report
           path: ${{ matrix.component }}-report.md
