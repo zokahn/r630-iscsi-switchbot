@@ -18,4 +18,5 @@ hvac>=1.1.0  # Optional Vault client
 # For testing
 pytest>=7.3.1
 pytest-mock>=3.10.0
+pytest-cov>=4.1.0  # For test coverage
 moto>=4.1.0  # For testing S3

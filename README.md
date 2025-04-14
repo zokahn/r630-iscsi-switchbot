@@ -204,7 +204,7 @@ We're transitioning to a component-based architecture with a consistent discover
 - [x] Implement BaseComponent class with discovery-processing-housekeeping pattern
 - [x] Add logging and configuration utilities
 - [x] Create S3 artifact management utilities
-- [ ] Write unit tests for framework
+- [x] Write unit tests for framework
 - [x] Document framework architecture
 
 ### Phase 2: Initial Component Implementation (Estimated: 1 week)
@@ -212,7 +212,7 @@ We're transitioning to a component-based architecture with a consistent discover
 - [x] Add S3 artifact indexing and metadata management
 - [x] Create dual-bucket synchronization in the new framework
 - [x] Document S3Component usage
-- [ ] Write unit tests for S3Component
+- [x] Write unit tests for S3Component
 - [x] Create example usage scripts
 
 ### Phase 3: Additional Components (Current Phase)
@@ -244,7 +244,64 @@ We're transitioning to a component-based architecture with a consistent discover
 
 ### Phase 5: Migration and Documentation (Ongoing)
 - [ ] Update existing scripts to use new components where applicable
+  - [x] Created [Script Migration Plan](docs/SCRIPT_MIGRATION_PLAN.md) with guidelines and examples
 - [ ] Maintain backward compatibility interfaces
+  - [x] Defined backward compatibility requirements in the migration plan
 - [ ] Create comprehensive documentation for the new architecture
+  - [x] Added [Component Tutorial](docs/COMPONENT_TUTORIAL.md) with end-to-end workflow examples
+  - [x] Created [Testing Improvements](docs/TESTING_IMPROVEMENTS.md) guide
 - [ ] Update MkDocs configuration for the new documentation
 - [ ] Create usage examples and tutorials
+  - [x] Added example implementation in the component tutorial
+
+## Unit Testing
+
+The project now includes a comprehensive unit testing framework for the component-based architecture:
+
+```
+tests/
+├── __init__.py
+├── conftest.py            # Shared test fixtures and configuration
+├── README.md              # Testing documentation
+├── test_values.yaml       # Functional test data
+└── unit/                  # Unit tests
+    ├── framework/         # Framework tests
+    │   ├── test_base_component.py
+    │   └── components/    # Component tests
+    │       ├── test_s3_component.py
+    │       ├── test_openshift_component.py
+    │       └── ...
+```
+
+### Running Tests
+
+Execute the test suite with the included helper script:
+
+```bash
+# Run all tests
+./run_tests.sh
+
+# Run with coverage report
+./run_tests.sh -c
+
+# Test only specific components
+./run_tests.sh -b  # BaseComponent
+./run_tests.sh -s  # S3Component
+./run_tests.sh -o  # OpenShiftComponent
+
+# Show help for more options
+./run_tests.sh -h
+```
+
+Or use pytest directly:
+
+```bash
+# Install requirements
+pip install pytest pytest-cov pytest-mock
+
+# Run specific tests
+pytest tests/unit/framework/test_base_component.py
+pytest tests/unit/framework/components/test_s3_component.py
+```
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
