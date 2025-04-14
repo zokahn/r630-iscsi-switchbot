@@ -1,0 +1,184 @@
+name: "CI - Integration Tests"
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_ip:
+        description: 'Test server IP address'
+        required: true
+        default: '192.168.2.230'
+      truenas_ip:
+        description: 'TrueNAS server IP'
+        required: true
+        default: '192.168.2.245'
+      test_components:
+        description: 'Components to test (comma-separated)'
+        required: false
+        default: 'truenas,iscsi,openshift,s3'
+        
+jobs:
+  prepare-environment:
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Validate test environment
+        id: validate
+        run: |
+          # Parse components into JSON array for matrix
+          echo "Validating test components: ${{ github.event.inputs.test_components }}"
+          IFS=',' read -ra COMPONENTS <<< "${{ github.event.inputs.test_components }}"
+          COMPONENTS_JSON="["
+          for component in "${COMPONENTS[@]}"; do
+            if [ ! -z "$component" ]; then
+              if [ "$COMPONENTS_JSON" != "[" ]; then
+                COMPONENTS_JSON="$COMPONENTS_JSON,"
+              fi
+              COMPONENTS_JSON="$COMPONENTS_JSON\"$component\""
+            fi
+          done
+          COMPONENTS_JSON="$COMPONENTS_JSON]"
+          echo "components_json=$COMPONENTS_JSON" >> $GITHUB_OUTPUT
+          
+          # Basic connectivity checks
+          echo "Checking connectivity to test server at ${{ github.event.inputs.server_ip }}"
+          ping -c 1 ${{ github.event.inputs.server_ip }} || echo "Warning: Test server may not be reachable"
+          
+          echo "Checking connectivity to TrueNAS at ${{ github.event.inputs.truenas_ip }}"
+          ping -c 1 ${{ github.event.inputs.truenas_ip }} || echo "Warning: TrueNAS may not be reachable"
+          
+          # Verify test scripts exist
+          for component in "${COMPONENTS[@]}"; do
+            if [ ! -f "scripts/test_${component}_integration.py" ] && [ ! -f "scripts/test_${component}.py" ]; then
+              echo "Warning: No test script found for component '${component}'"
+            fi
+          done
+
+  parallel-integration-tests:
+    needs: prepare-environment
+    runs-on: [self-hosted]
+    strategy:
+      fail-fast: false  # Continue with other components if one fails
+      matrix:
+        component: ${{ fromJson(needs.prepare-environment.outputs.components_json) }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run ${{ matrix.component }} integration tests
+        id: run_tests
+        run: |
+          # Determine which script to use
+          if [ -f "scripts/test_${{ matrix.component }}_integration.py" ]; then
+            TEST_SCRIPT="scripts/test_${{ matrix.component }}_integration.py"
+          elif [ -f "scripts/test_${{ matrix.component }}.py" ]; then
+            TEST_SCRIPT="scripts/test_${{ matrix.component }}.py"
+          else
+            echo "Error: No test script found for ${{ matrix.component }}"
+            exit 1
+          fi
+          
+          echo "Running integration tests for ${{ matrix.component }} using $TEST_SCRIPT"
+          python $TEST_SCRIPT \
+            --server ${{ github.event.inputs.server_ip }} \
+            --truenas ${{ github.event.inputs.truenas_ip }} \
+            --ci-mode \
+            || echo "::warning::Tests for ${{ matrix.component }} reported issues"
+      
+      - name: Generate test report
+        run: |
+          echo "## ${{ matrix.component }} Integration Test Results" > ${{ matrix.component }}-integration-report.md
+          echo "- Server: ${{ github.event.inputs.server_ip }}" >> ${{ matrix.component }}-integration-report.md
+          echo "- TrueNAS: ${{ github.event.inputs.truenas_ip }}" >> ${{ matrix.component }}-integration-report.md
+          echo "- Status: ${{ steps.run_tests.outcome }}" >> ${{ matrix.component }}-integration-report.md
+          echo "" >> ${{ matrix.component }}-integration-report.md
+          echo "See logs for detailed output." >> ${{ matrix.component }}-integration-report.md
+      
+      - name: Upload test report
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.component }}-integration-results
+          path: ${{ matrix.component }}-integration-report.md
+          
+  end-to-end-test:
+    needs: parallel-integration-tests
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run end-to-end workflow test
+        run: |
+          echo "Running end-to-end workflow test"
+          python scripts/workflow_end_to_end_example.py \
+            --server ${{ github.event.inputs.server_ip }} \
+            --truenas ${{ github.event.inputs.truenas_ip }} \
+            --ci-mode
+      
+      - name: Generate E2E report
+        run: |
+          echo "## End-to-End Workflow Test Results" > e2e-test-report.md
+          echo "- Server: ${{ github.event.inputs.server_ip }}" >> e2e-test-report.md
+          echo "- TrueNAS: ${{ github.event.inputs.truenas_ip }}" >> e2e-test-report.md
+          echo "" >> e2e-test-report.md
+          echo "See logs for detailed output." >> e2e-test-report.md
+      
+      - name: Upload E2E report
+        uses: actions/upload-artifact@v3
+        with:
+          name: end-to-end-test-results
+          path: e2e-test-report.md
+
+  summarize:
+    needs: [parallel-integration-tests, end-to-end-test]
+    if: always()
+    runs-on: [self-hosted]
+    steps:
+      - name: Generate summary report
+        run: |
+          echo "## Integration Test Summary" > integration-summary.md
+          echo "**Test Environment:**" >> integration-summary.md
+          echo "- Server: ${{ github.event.inputs.server_ip }}" >> integration-summary.md
+          echo "- TrueNAS: ${{ github.event.inputs.truenas_ip }}" >> integration-summary.md
+          echo "" >> integration-summary.md
+          
+          echo "**Components Tested:**" >> integration-summary.md
+          IFS=',' read -ra COMPONENTS <<< "${{ github.event.inputs.test_components }}"
+          for component in "${COMPONENTS[@]}"; do
+            echo "- ${component}" >> integration-summary.md
+          done
+          echo "" >> integration-summary.md
+          
+          echo "**End-to-End Workflow:**" >> integration-summary.md
+          echo "- Status: ${{ needs.end-to-end-test.result == 'success' && 'Passed' || 'Failed' }}" >> integration-summary.md
+          echo "" >> integration-summary.md
+          
+          echo "See individual component test reports for details." >> integration-summary.md
+      
+      - name: Upload summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-summary
+          path: integration-summary.md

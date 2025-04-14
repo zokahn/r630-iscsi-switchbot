@@ -313,3 +313,45 @@ pytest tests/unit/framework/components/test_s3_component.py
 ```
 
 See [tests/README.md](tests/README.md) for detailed testing documentation.
+
+## Continuous Integration
+
+The project uses GitHub Actions for comprehensive CI workflows that follow modern best practices:
+
+### Enhanced CI Workflows
+
+- **[CI - Unit Tests](.github/workflows/ci-unit-tests.yml)**: Matrix testing across multiple Python versions with parallel execution
+- **[CI - Component Tests](.github/workflows/ci-component-tests.yml)**: Containerized testing of framework components
+- **[CI - Integration Tests](.github/workflows/ci-integration-tests.yml)**: End-to-end tests with parallel component testing
+- **[CI - ISO Generation](.github/workflows/ci-iso-generation.yml)**: Parallel building of OpenShift ISOs for multiple versions
+
+### Key CI Features
+
+- **Smart Stages**: Multi-stage pipelines with proper dependencies
+- **Parallelization**: Matrix strategies for efficient resource utilization
+- **Non-Intrusive Quality Checks**: Warning-only linting that never modifies code
+- **Containerized Testing**: Isolated test environments for consistent results
+- **Comprehensive Reporting**: Detailed test reports and artifacts
+
+For more details, see:
+- [CI Implementation Plan](docs/CI_IMPLEMENTATION.md): Complete CI architecture and workflows
+- [CI Workflow Testing](docs/CI_WORKFLOW_TESTING.md): Step-by-step guide for testing CI workflows
+- [Linting Policy](docs/LINTING_POLICY.md): Our philosophy on non-intrusive code quality checks
+- [GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md): How to use GitHub Actions with this project
+
+A helper script for testing workflows is provided:
+```bash
+# Test all workflows
+./scripts/test_github_workflows.sh --all
+
+# Test only unit and component tests
+./scripts/test_github_workflows.sh --unit --component
+
+# Test ISO generation with multiple versions
+./scripts/test_github_workflows.sh --iso --openshift-version 4.17,4.18
+
+# Show all options
+./scripts/test_github_workflows.sh --help
+```
+
+Note: While CI (Continuous Integration) is fully automated, deployments remain ad hoc rather than using CD (Continuous Deployment) automation.

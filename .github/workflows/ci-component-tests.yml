@@ -1,0 +1,129 @@
+name: "CI - Component Tests"
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'framework/**'
+      - 'scripts/**'
+      - '.github/workflows/ci-component-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'framework/**'
+      - 'scripts/**'
+
+jobs:
+  prepare-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create docker-compose.test.yml
+        run: |
+          cat > docker-compose.test.yml << 'EOF'
+          version: '3'
+          services:
+            minio:
+              image: minio/minio:latest
+              ports:
+                - "9000:9000"
+                - "9001:9001"
+              environment:
+                - MINIO_ROOT_USER=minioadmin
+                - MINIO_ROOT_PASSWORD=minioadmin
+              command: server /data --console-address ":9001"
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+                interval: 10s
+                timeout: 5s
+                retries: 3
+            
+            vault:
+              image: hashicorp/vault:latest
+              ports:
+                - "8200:8200"
+              environment:
+                - VAULT_DEV_ROOT_TOKEN_ID=devtoken
+                - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+              cap_add:
+                - IPC_LOCK
+          EOF
+          
+      - name: Start test services
+        run: docker-compose -f docker-compose.test.yml up -d
+        
+      - name: Wait for services
+        run: |
+          # Wait for MinIO to be ready
+          timeout 60s bash -c 'until curl -s http://localhost:9000/minio/health/live; do sleep 1; done'
+          
+          # Wait for Vault to be ready
+          timeout 60s bash -c 'until curl -s http://localhost:8200/v1/sys/health | grep "initialized"; do sleep 1; done'
+    outputs:
+      environment-ready: 'true'
+
+  test-components:
+    needs: prepare-environment
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ['s3', 'vault', 'iscsi', 'openshift']
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Test ${{ matrix.component }} component
+        run: |
+          # Skip tests that require real hardware for iscsi component
+          if [ "${{ matrix.component }}" = "iscsi" ]; then
+            python -m pytest tests/unit/framework/components/test_${{ matrix.component }}*.py -k "not requires_hardware" -v
+          else
+            python -m pytest tests/unit/framework/components/test_${{ matrix.component }}*.py -v
+          fi
+        
+      - name: Generate component report
+        run: |
+          echo "## ${{ matrix.component }} Component Test Results" > ${{ matrix.component }}-report.md
+          echo "Tests completed. See logs for details." >> ${{ matrix.component }}-report.md
+          
+      - name: Upload component report
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.component }}-test-report
+          path: ${{ matrix.component }}-report.md
+
+  integration-check:
+    needs: test-components
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run simple integration check
+        run: |
+          python scripts/workflow_end_to_end_example.py --check-only
+
+  cleanup:
+    if: always()
+    needs: [test-components, integration-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Clean up services
+        run: docker-compose -f docker-compose.test.yml down -v
