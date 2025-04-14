@@ -93,7 +93,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       
       - name: Cache pip packages
         uses: actions/cache@v3
@@ -105,54 +105,80 @@ jobs:
       - name: Install quality tools
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 bandit
+          pip install flake8 bandit mypy types-requests pylint safety
       
-      # WARNING-ONLY checks - no auto-formatting
+      # Enhanced code quality checks for Python 3.12
       - name: Flake8 linting
         id: flake8
         run: |
           # Create a report directory
           mkdir -p reports
           
-          # Run flake8 and save results
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics > reports/flake8-critical.txt || true
-          flake8 . --count --exit-zero --max-complexity=10 --statistics > reports/flake8-full.txt
+          # Run flake8 and save results (with proper error redirection)
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics > reports/flake8-critical.txt 2>/dev/null || true
+          flake8 . --count --exit-zero --max-complexity=10 --statistics > reports/flake8-full.txt 2>/dev/null || true
           
-          # Count issues for summary
-          CRITICAL_COUNT=$(grep -c "^[A-Za-z]" reports/flake8-critical.txt || echo "0")
-          TOTAL_COUNT=$(grep -c "^[A-Za-z]" reports/flake8-full.txt || echo "0")
+          # Count issues with proper error handling
+          CRITICAL_COUNT=$(grep -c "^[A-Za-z]" reports/flake8-critical.txt 2>/dev/null || echo "0")
+          TOTAL_COUNT=$(grep -c "^[A-Za-z]" reports/flake8-full.txt 2>/dev/null || echo "0")
           
-          echo "critical_issues=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
-          echo "total_issues=$TOTAL_COUNT" >> $GITHUB_OUTPUT
+          echo "critical_issues=${CRITICAL_COUNT}" >> ${GITHUB_OUTPUT}
+          echo "total_issues=${TOTAL_COUNT}" >> ${GITHUB_OUTPUT}
           
           echo "Found $CRITICAL_COUNT critical issues and $TOTAL_COUNT total style issues"
+          
+      - name: Static type checking
+        id: mypy
+        run: |
+          # Run mypy on core modules
+          mkdir -p reports
+          mypy framework scripts --python-version 3.12 --show-error-codes --ignore-missing-imports \
+            --pretty --html-report reports/type-report > reports/mypy-output.txt || true
+          
+          # Count type issues
+          TYPE_ISSUES=$(grep -c "error:" reports/mypy-output.txt 2>/dev/null || echo "0")
+          echo "type_issues=${TYPE_ISSUES}" >> ${GITHUB_OUTPUT}
+          
+          echo "Found ${TYPE_ISSUES} type issues"
           
       - name: Security check
         id: security
         run: |
-          # Run security checks
+          # Run comprehensive security checks
+          echo "Running bandit security scan..."
           bandit -r . -f json -o reports/security-report.json --exit-zero
+          
+          echo "Running dependency vulnerability scan..."
+          safety check --json > reports/safety-report.json || true
           
           # Count security issues
           SEC_COUNT=$(jq '.results | length' reports/security-report.json)
           HIGH_COUNT=$(jq '.metrics.baseline.SEVERITY.HIGH' reports/security-report.json)
           
-          echo "security_issues=$SEC_COUNT" >> $GITHUB_OUTPUT
-          echo "high_severity=$HIGH_COUNT" >> $GITHUB_OUTPUT
+          # Count dependency vulnerabilities
+          VULN_COUNT=$(jq 'length' reports/safety-report.json 2>/dev/null || echo "0")
           
-          echo "Found $SEC_COUNT security issues, $HIGH_COUNT high severity"
+          echo "security_issues=${SEC_COUNT}" >> ${GITHUB_OUTPUT}
+          echo "high_severity=${HIGH_COUNT}" >> ${GITHUB_OUTPUT}
+          echo "vulnerabilities=${VULN_COUNT}" >> ${GITHUB_OUTPUT}
+          
+          echo "Found ${SEC_COUNT} security issues (${HIGH_COUNT} high severity) and ${VULN_COUNT} vulnerable dependencies"
       
       - name: Generate quality report summary
         run: |
-          echo "## Code Quality Summary" > reports/quality-report.md
+          echo "## Code Quality Summary (Python 3.12)" > reports/quality-report.md
           echo "" >> reports/quality-report.md
           echo "### Linting Results" >> reports/quality-report.md
           echo "- Critical issues: ${{ steps.flake8.outputs.critical_issues }}" >> reports/quality-report.md
           echo "- Total style issues: ${{ steps.flake8.outputs.total_issues }}" >> reports/quality-report.md
           echo "" >> reports/quality-report.md
+          echo "### Type Checking Results" >> reports/quality-report.md
+          echo "- Type issues found: ${{ steps.mypy.outputs.type_issues }}" >> reports/quality-report.md
+          echo "" >> reports/quality-report.md
           echo "### Security Scan Results" >> reports/quality-report.md
-          echo "- Security issues found: ${{ steps.security.outputs.security_issues }}" >> reports/quality-report.md
+          echo "- Code security issues: ${{ steps.security.outputs.security_issues }}" >> reports/quality-report.md
           echo "- High severity issues: ${{ steps.security.outputs.high_severity }}" >> reports/quality-report.md
+          echo "- Vulnerable dependencies: ${{ steps.security.outputs.vulnerabilities }}" >> reports/quality-report.md
           echo "" >> reports/quality-report.md
           echo "See detailed reports in workflow artifacts." >> reports/quality-report.md
       
@@ -175,7 +201,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.12']
     
     steps:
       - uses: actions/checkout@v3
@@ -225,7 +251,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.12']
     
     steps:
       - uses: actions/checkout@v3
@@ -275,7 +301,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.12']
     
     steps:
       - uses: actions/checkout@v3
@@ -330,7 +356,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       
       - name: Install coverage tools
         run: |
@@ -366,26 +392,26 @@ jobs:
           echo "" >> combined-reports/test-summary.md
           
           echo "### Test Configuration" >> combined-reports/test-summary.md
-          echo "- Python versions: 3.9, 3.10, 3.11" >> combined-reports/test-summary.md
+          echo "- Python version: 3.12" >> combined-reports/test-summary.md
           
           # Check which test suites were run
           echo "### Test Suites Run" >> combined-reports/test-summary.md
           # Framework tests
-          if [[ -d "all-artifacts/test-reports-3.11-framework" ]]; then
+          if [[ -d "all-artifacts/test-reports-3.12-framework" ]]; then
             echo "- ✅ Framework" >> combined-reports/test-summary.md
           else
             echo "- ❌ Framework (skipped)" >> combined-reports/test-summary.md
           fi
           
           # Component tests
-          if [[ -d "all-artifacts/test-reports-3.11-components" ]]; then
+          if [[ -d "all-artifacts/test-reports-3.12-components" ]]; then
             echo "- ✅ Components" >> combined-reports/test-summary.md
           else
             echo "- ❌ Components (skipped)" >> combined-reports/test-summary.md
           fi
           
           # Script tests
-          if [[ -d "all-artifacts/test-reports-3.11-scripts" ]]; then
+          if [[ -d "all-artifacts/test-reports-3.12-scripts" ]]; then
             echo "- ✅ Scripts" >> combined-reports/test-summary.md
           else
             echo "- ❌ Scripts (skipped)" >> combined-reports/test-summary.md
