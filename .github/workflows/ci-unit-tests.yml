@@ -1,4 +1,4 @@
-name: "CI - Unit Tests"
+name: "CI - Unit Tests (Enhanced)"
 
 on:
   push:
@@ -6,23 +6,101 @@ on:
     paths:
       - '**.py'
       - 'requirements.txt'
-      - '.github/workflows/ci-unit-tests.yml'
+      - '.github/workflows/ci-unit-tests*.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - '**.py'
       - 'requirements.txt'
-      - '.github/workflows/ci-unit-tests.yml'
+      - '.github/workflows/ci-unit-tests*.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+# Prevent multiple workflow runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  code-quality:
+  # STAGE 1: Detect changes to determine what needs to be tested
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      framework: ${{ steps.filter.outputs.framework }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+      components: ${{ steps.filter.outputs.components }}
+      tests: ${{ steps.filter.outputs.tests }}
+      any_py_changes: ${{ steps.filter.outputs.any_py_changes }}
+      
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for proper diff detection
+        
+      - name: Set base commit for PRs
+        if: github.event_name == 'pull_request'
+        run: echo "BASE_COMMIT=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
+        
+      - name: Set base commit for push
+        if: github.event_name == 'push'
+        run: echo "BASE_COMMIT=$(git rev-parse HEAD~1)" >> $GITHUB_ENV
+      
+      - name: Check for file changes
+        id: filter
+        run: |
+          echo "Detecting changed files..."
+          # Get changed files between HEAD and base commit
+          CHANGED_FILES=$(git diff --name-only $BASE_COMMIT HEAD)
+          
+          # Initialize outputs
+          FRAMEWORK_CHANGES=false
+          SCRIPTS_CHANGES=false
+          COMPONENTS_CHANGES=false
+          TESTS_CHANGES=false
+          ANY_PY_CHANGES=false
+          
+          # Set outputs based on file patterns
+          echo "$CHANGED_FILES" | grep -q "\.py$" && ANY_PY_CHANGES=true || true
+          echo "$CHANGED_FILES" | grep -q "^framework/" && FRAMEWORK_CHANGES=true || true
+          echo "$CHANGED_FILES" | grep -q "^scripts/" && SCRIPTS_CHANGES=true || true
+          echo "$CHANGED_FILES" | grep -q "^framework/components/" && COMPONENTS_CHANGES=true || true
+          echo "$CHANGED_FILES" | grep -q "^tests/" && TESTS_CHANGES=true || true
+          
+          # Output as GitHub outputs
+          echo "framework=$FRAMEWORK_CHANGES" >> $GITHUB_OUTPUT
+          echo "scripts=$SCRIPTS_CHANGES" >> $GITHUB_OUTPUT
+          echo "components=$COMPONENTS_CHANGES" >> $GITHUB_OUTPUT
+          echo "tests=$TESTS_CHANGES" >> $GITHUB_OUTPUT
+          echo "any_py_changes=$ANY_PY_CHANGES" >> $GITHUB_OUTPUT
+          
+          # Summary
+          echo "Changes detected:"
+          echo "- Framework: $FRAMEWORK_CHANGES"
+          echo "- Scripts: $SCRIPTS_CHANGES"
+          echo "- Components: $COMPONENTS_CHANGES"
+          echo "- Tests: $TESTS_CHANGES"
+          echo "- Any Python: $ANY_PY_CHANGES"
+
+  # STAGE 2A: Code quality check runs in parallel with tests
+  code-quality:
+    runs-on: ubuntu-latest
+    needs: changes
+    # Always run on workflow_dispatch, otherwise only run if Python files changed
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.any_py_changes == 'true'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+      
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-quality-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-quality-
       
       - name: Install quality tools
         run: |
@@ -30,100 +108,299 @@ jobs:
           pip install flake8 bandit
       
       # WARNING-ONLY checks - no auto-formatting
-      - name: Check for critical errors (warning only)
+      - name: Flake8 linting
+        id: flake8
         run: |
-          # Will report issues but won't modify code or fail the build
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exit-zero
+          # Create a report directory
+          mkdir -p reports
           
-      - name: Security check (warning only)
+          # Run flake8 and save results
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics > reports/flake8-critical.txt || true
+          flake8 . --count --exit-zero --max-complexity=10 --statistics > reports/flake8-full.txt
+          
+          # Count issues for summary
+          CRITICAL_COUNT=$(grep -c "^[A-Za-z]" reports/flake8-critical.txt || echo "0")
+          TOTAL_COUNT=$(grep -c "^[A-Za-z]" reports/flake8-full.txt || echo "0")
+          
+          echo "critical_issues=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+          echo "total_issues=$TOTAL_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "Found $CRITICAL_COUNT critical issues and $TOTAL_COUNT total style issues"
+          
+      - name: Security check
+        id: security
         run: |
-          # Run security checks but don't fail the build
-          bandit -r . -f json -o security-report.json --exit-zero
-          echo "Security report generated. Review at your convenience."
+          # Run security checks
+          bandit -r . -f json -o reports/security-report.json --exit-zero
+          
+          # Count security issues
+          SEC_COUNT=$(jq '.results | length' reports/security-report.json)
+          HIGH_COUNT=$(jq '.metrics.baseline.SEVERITY.HIGH' reports/security-report.json)
+          
+          echo "security_issues=$SEC_COUNT" >> $GITHUB_OUTPUT
+          echo "high_severity=$HIGH_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "Found $SEC_COUNT security issues, $HIGH_COUNT high severity"
       
-      # Generate reports but don't fail the build
       - name: Generate quality report summary
         run: |
-          echo "## Code Quality Summary" > quality-report.md
-          echo "Review these reports at your convenience. No build failures will occur due to style issues." >> quality-report.md
-          echo "### Flake8 Results" >> quality-report.md
-          flake8 . --count --exit-zero --max-complexity=10 --statistics >> quality-report.md
+          echo "## Code Quality Summary" > reports/quality-report.md
+          echo "" >> reports/quality-report.md
+          echo "### Linting Results" >> reports/quality-report.md
+          echo "- Critical issues: ${{ steps.flake8.outputs.critical_issues }}" >> reports/quality-report.md
+          echo "- Total style issues: ${{ steps.flake8.outputs.total_issues }}" >> reports/quality-report.md
+          echo "" >> reports/quality-report.md
+          echo "### Security Scan Results" >> reports/quality-report.md
+          echo "- Security issues found: ${{ steps.security.outputs.security_issues }}" >> reports/quality-report.md
+          echo "- High severity issues: ${{ steps.security.outputs.high_severity }}" >> reports/quality-report.md
+          echo "" >> reports/quality-report.md
+          echo "See detailed reports in workflow artifacts." >> reports/quality-report.md
       
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
           name: code-quality-reports
-          path: |
-            quality-report.md
-            security-report.json
+          path: reports/
+          retention-days: 7
 
-  test:
-    # Can run in parallel with code-quality
-    runs-on: ${{ matrix.os }}
+  # STAGE 2B: Framework tests
+  test-framework:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      needs.changes.outputs.framework == 'true' || 
+      needs.changes.outputs.tests == 'true'
+    
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         python-version: ['3.9', '3.10', '3.11']
-        test-group: ['framework', 'scripts']
     
     steps:
       - uses: actions/checkout@v3
+      
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-xdist
+      
+      - name: Run framework tests
+        id: run_tests
+        run: |
+          mkdir -p reports
+          
+          # Use pytest-xdist to parallelize tests
+          python -m pytest tests/unit/framework \
+            --cov=framework \
+            --cov-report=xml:reports/coverage-${{ matrix.python-version }}-framework.xml \
+            --cov-report=html:reports/htmlcov-${{ matrix.python-version }}-framework \
+            --junitxml=reports/junit-${{ matrix.python-version }}-framework.xml \
+            -v -n auto || echo "::warning::Tests completed with failures"
+            
+          echo "Tests completed for framework on Python ${{ matrix.python-version }}"
+      
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}
+          name: test-reports-${{ matrix.python-version }}-framework
+          path: reports/
+          retention-days: 7
+
+  # STAGE 2C: Component tests
+  test-components:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      needs.changes.outputs.components == 'true' || 
+      needs.changes.outputs.tests == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
       
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-xdist
       
-      - name: Run tests for ${{ matrix.test-group }}
+      - name: Run component tests
         id: run_tests
-        continue-on-error: true
         run: |
-          python -m pytest tests/unit/${{ matrix.test-group }} --cov=./${{ matrix.test-group }} --cov-report=xml -v
-          echo "Tests completed with exit code: $?"
-          # Create a minimal coverage file if it doesn't exist
-          if [ ! -f coverage.xml ]; then
-            echo "<?xml version='1.0' encoding='utf-8'?><coverage></coverage>" > coverage.xml
-            echo "Created empty coverage file for artifact upload"
+          mkdir -p reports
+          
+          # Use pytest-xdist to parallelize tests
+          python -m pytest tests/unit/framework/components \
+            --cov=framework/components \
+            --cov-report=xml:reports/coverage-${{ matrix.python-version }}-components.xml \
+            --cov-report=html:reports/htmlcov-${{ matrix.python-version }}-components \
+            --junitxml=reports/junit-${{ matrix.python-version }}-components.xml \
+            -v -n auto || echo "::warning::Tests completed with failures"
+            
+          echo "Tests completed for components on Python ${{ matrix.python-version }}"
+      
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.python-version }}-components
+          path: reports/
+          retention-days: 7
+
+  # STAGE 2D: Scripts tests
+  test-scripts:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      needs.changes.outputs.scripts == 'true' || 
+      needs.changes.outputs.tests == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-xdist
+      
+      - name: Run script tests
+        id: run_tests
+        run: |
+          mkdir -p reports
+          
+          # Use pytest-xdist to parallelize tests
+          python -m pytest tests/unit/scripts \
+            --cov=scripts \
+            --cov-report=xml:reports/coverage-${{ matrix.python-version }}-scripts.xml \
+            --cov-report=html:reports/htmlcov-${{ matrix.python-version }}-scripts \
+            --junitxml=reports/junit-${{ matrix.python-version }}-scripts.xml \
+            -v -n auto || echo "::warning::Tests completed with failures"
+            
+          echo "Tests completed for scripts on Python ${{ matrix.python-version }}"
+      
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.python-version }}-scripts
+          path: reports/
+          retention-days: 7
+
+  # STAGE 3: Combine test results
+  test-summary:
+    needs: [changes, test-framework, test-components, test-scripts]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download all workflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+          pattern: test-reports-*
+          merge-multiple: true
+      
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install coverage tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install coverage
+
+      - name: Combine coverage reports
+        run: |
+          mkdir -p combined-reports
+          
+          # Try to combine coverage reports
+          shopt -s nullglob  # Handle case with no matching files
+          xml_files=(all-artifacts/coverage-*.xml)
+          
+          if [ ${#xml_files[@]} -gt 0 ]; then
+            echo "Combining ${#xml_files[@]} coverage reports"
+            coverage combine all-artifacts/coverage-*.xml
+            coverage xml -o combined-reports/combined-coverage.xml
+            coverage report > combined-reports/coverage-report.txt
+            
+            # Extract coverage percentage
+            COVERAGE_PCT=$(grep "TOTAL" combined-reports/coverage-report.txt | awk '{print $NF}' | sed 's/%//')
+            echo "Combined coverage: $COVERAGE_PCT%"
+            echo "coverage_percentage=$COVERAGE_PCT" >> $GITHUB_ENV
+          else
+            echo "No coverage reports found to combine"
+            echo "coverage_percentage=0" >> $GITHUB_ENV
           fi
       
-      - name: Upload coverage to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.python-version }}-${{ matrix.test-group }}
-          path: coverage.xml
-          if-no-files-found: warn
-
-  # Summary job that always runs
-  test-summary:
-    needs: [test]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
       - name: Create test summary
         run: |
-          echo "## Unit Test Results" > test-summary.md
-          echo "### Matrix Test Configuration" >> test-summary.md
-          echo "- Python versions: 3.9, 3.10, 3.11" >> test-summary.md
-          echo "- Test groups: framework, scripts" >> test-summary.md
-          echo "- Total matrix combinations: 6" >> test-summary.md
-          echo >> test-summary.md
-          echo "See detailed test logs in GitHub Actions Job output." >> test-summary.md
+          echo "## Unit Test Summary" > combined-reports/test-summary.md
+          echo "" >> combined-reports/test-summary.md
           
-      - name: Upload test summary
+          echo "### Test Configuration" >> combined-reports/test-summary.md
+          echo "- Python versions: 3.9, 3.10, 3.11" >> combined-reports/test-summary.md
+          
+          # Check which test suites were run
+          echo "### Test Suites Run" >> combined-reports/test-summary.md
+          # Framework tests
+          if [[ -d "all-artifacts/test-reports-3.11-framework" ]]; then
+            echo "- ✅ Framework" >> combined-reports/test-summary.md
+          else
+            echo "- ❌ Framework (skipped)" >> combined-reports/test-summary.md
+          fi
+          
+          # Component tests
+          if [[ -d "all-artifacts/test-reports-3.11-components" ]]; then
+            echo "- ✅ Components" >> combined-reports/test-summary.md
+          else
+            echo "- ❌ Components (skipped)" >> combined-reports/test-summary.md
+          fi
+          
+          # Script tests
+          if [[ -d "all-artifacts/test-reports-3.11-scripts" ]]; then
+            echo "- ✅ Scripts" >> combined-reports/test-summary.md
+          else
+            echo "- ❌ Scripts (skipped)" >> combined-reports/test-summary.md
+          fi
+          
+          echo "" >> combined-reports/test-summary.md
+          echo "### Coverage Summary" >> combined-reports/test-summary.md
+          echo "- Overall coverage: ${{ env.coverage_percentage }}%" >> combined-reports/test-summary.md
+          echo "" >> combined-reports/test-summary.md
+          
+          echo "See detailed test logs and reports in GitHub Actions artifacts." >> combined-reports/test-summary.md
+          
+      - name: Upload combined reports
         uses: actions/upload-artifact@v4
         with:
-          name: test-summary
-          path: test-summary.md
+          name: combined-test-summary
+          path: combined-reports/
+          retention-days: 7
