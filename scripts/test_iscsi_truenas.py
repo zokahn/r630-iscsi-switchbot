@@ -18,7 +18,7 @@ from pprint import pformat
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import components
-from framework.components import ISCSIComponent
+from framework.components.iscsi_component import ISCSIComponent
 
 def setup_logging(verbose=False):
     """Set up logging configuration"""
