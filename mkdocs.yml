@@ -31,6 +31,7 @@ nav:
   - Testing:
     - Test Plan: TEST_PLAN.md
     - Test Results: TEST_RESULTS.md
+    - Testing Improvements: docs/TESTING_IMPROVEMENTS.md
   - Documentation:
     - TrueNAS Authentication: docs/TRUENAS_AUTHENTICATION.md
     - Troubleshooting: docs/TROUBLESHOOTING.md
@@ -41,7 +42,12 @@ nav:
     - Secrets Management:
       - Secrets Provider System: docs/SECRETS_PROVIDER.md
       - HashiCorp Vault Integration: docs/VAULT_SECRETS_MANAGEMENT.md
-    - Component Architecture: docs/COMPONENT_ARCHITECTURE.md
+    - Component Architecture:
+      - Overview: docs/COMPONENT_ARCHITECTURE.md
+      - Component Tutorial: docs/COMPONENT_TUTORIAL.md
+      - Script Migration Plan: docs/SCRIPT_MIGRATION_PLAN.md
+      - Error Handling Patterns: docs/ERROR_HANDLING_PATTERNS.md
+      - Component Testing Strategy: docs/COMPONENT_TESTING_STRATEGY.md
     - Storage:
       - S3 Storage Integration: docs/S3_STORAGE.md
       - MinIO Dual-Bucket Setup: docs/MINIO_DUAL_BUCKET_SETUP.md

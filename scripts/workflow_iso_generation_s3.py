@@ -2,10 +2,14 @@
 """
 workflow_iso_generation_s3.py - Orchestrates OpenShift ISO generation and S3 storage
 
-This script demonstrates a complete workflow involving:
-1. S3 component to provide persistent storage
-2. OpenShift component to generate ISO images
-3. Storing and retrieving artifacts from S3
+This script manages the generation of OpenShift ISOs and their storage in S3 using the 
+discovery-processing-housekeeping pattern with the component architecture.
+
+It performs the following steps:
+1. Sets up S3Component for storage operations
+2. Sets up OpenShiftComponent for ISO generation
+3. Executes the full workflow through discovery, processing, and housekeeping phases
+4. Manages proper error handling and reporting
 """
 
 import os
@@ -15,248 +19,364 @@ import argparse
 import json
 import tempfile
 from pathlib import Path
-from datetime import datetime
+from typing import Dict, Any, Optional, List, Tuple
 
 # Add project root to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 # Import components
-from framework.components import S3Component, OpenShiftComponent
+from framework.components.s3_component import S3Component
+from framework.components.openshift_component import OpenShiftComponent
 
-def setup_logging(verbose=False):
-    """Set up logging configuration"""
+
+def setup_logging(verbose: bool = False) -> logging.Logger:
+    """
+    Set up logging configuration with proper formatting.
+
+    Args:
+        verbose: Whether to use DEBUG level logging
+
+    Returns:
+        Configured logger instance
+    """
     log_level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler()
-        ]
+        handlers=[logging.StreamHandler()]
     )
     return logging.getLogger("workflow")
 
-def parse_arguments():
-    """Parse command line arguments"""
+
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command line arguments with proper typing and descriptions.
+
+    Returns:
+        Parsed arguments as Namespace
+    """
     parser = argparse.ArgumentParser(
-        description="Generate OpenShift ISO and store in S3"
+        description="Generate OpenShift ISO and store in S3 using the component architecture"
     )
     
     # OpenShift configuration
-    parser.add_argument("--version", default="4.14", help="OpenShift version")
-    parser.add_argument("--domain", default="example.com", help="Base domain for OpenShift")
-    parser.add_argument("--rendezvous-ip", help="Rendezvous IP address for agent-based install")
-    parser.add_argument("--pull-secret", help="Path to pull secret file")
-    parser.add_argument("--ssh-key", help="Path to SSH public key file")
+    openshift_group = parser.add_argument_group('OpenShift Configuration')
+    openshift_group.add_argument(
+        "--version", 
+        default="4.14", 
+        help="OpenShift version (e.g., '4.14')"
+    )
+    openshift_group.add_argument(
+        "--domain", 
+        default="example.com", 
+        help="Base domain for OpenShift"
+    )
+    openshift_group.add_argument(
+        "--rendezvous-ip", 
+        help="Rendezvous IP address for agent-based install"
+    )
+    openshift_group.add_argument(
+        "--pull-secret", 
+        help="Path to pull secret file (default: ~/.openshift/pull-secret)"
+    )
+    openshift_group.add_argument(
+        "--ssh-key", 
+        help="Path to SSH public key file (default: ~/.ssh/id_rsa.pub)"
+    )
     
     # S3/MinIO configuration
-    parser.add_argument("--s3-endpoint", default="scratchy.omnisack.nl", help="S3 endpoint URL")
-    parser.add_argument("--s3-access-key", help="S3 access key")
-    parser.add_argument("--s3-secret-key", help="S3 secret key")
-    parser.add_argument("--s3-secure", action="store_true", help="Use HTTPS for S3 connection")
-    parser.add_argument("--iso-bucket", default="r630-switchbot-isos", help="Bucket for OpenShift ISOs")
-    parser.add_argument("--binary-bucket", default="r630-switchbot-binaries", help="Bucket for OpenShift binaries")
+    s3_group = parser.add_argument_group('S3/MinIO Configuration')
+    s3_group.add_argument(
+        "--s3-endpoint", 
+        default="scratchy.omnisack.nl", 
+        help="S3 endpoint URL"
+    )
+    s3_group.add_argument(
+        "--s3-access-key", 
+        help="S3 access key (can also use S3_ACCESS_KEY env var)"
+    )
+    s3_group.add_argument(
+        "--s3-secret-key", 
+        help="S3 secret key (can also use S3_SECRET_KEY env var)"
+    )
+    s3_group.add_argument(
+        "--s3-secure", 
+        action="store_true", 
+        help="Use HTTPS for S3 connection"
+    )
+    s3_group.add_argument(
+        "--iso-bucket", 
+        default="r630-switchbot-isos", 
+        help="Bucket for OpenShift ISOs"
+    )
+    s3_group.add_argument(
+        "--binary-bucket", 
+        default="r630-switchbot-binaries", 
+        help="Bucket for OpenShift binaries"
+    )
     
     # Workflow options
-    parser.add_argument("--skip-iso", action="store_true", help="Skip ISO generation")
-    parser.add_argument("--skip-upload", action="store_true", help="Skip uploading to S3")
-    parser.add_argument("--list-only", action="store_true", help="Only list ISOs in S3, don't generate")
-    parser.add_argument("--temp-dir", help="Custom temporary directory")
+    workflow_group = parser.add_argument_group('Workflow Options')
+    workflow_group.add_argument(
+        "--skip-iso", 
+        action="store_true", 
+        help="Skip ISO generation"
+    )
+    workflow_group.add_argument(
+        "--skip-upload", 
+        action="store_true", 
+        help="Skip uploading to S3"
+    )
+    workflow_group.add_argument(
+        "--list-only", 
+        action="store_true", 
+        help="Only list ISOs in S3, don't generate"
+    )
+    workflow_group.add_argument(
+        "--temp-dir", 
+        help="Custom temporary directory for output files"
+    )
+    workflow_group.add_argument(
+        "--server-id", 
+        help="Server ID for ISO identification (e.g., '01')"
+    )
+    workflow_group.add_argument(
+        "--hostname", 
+        help="Server hostname for ISO identification"
+    )
     
     # General options
-    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
-    parser.add_argument("--dry-run", action="store_true", help="Dry run (no changes)")
+    general_group = parser.add_argument_group('General Options')
+    general_group.add_argument(
+        "--verbose", "-v", 
+        action="store_true", 
+        help="Enable verbose logging"
+    )
+    general_group.add_argument(
+        "--dry-run", 
+        action="store_true", 
+        help="Dry run (no changes)"
+    )
     
     return parser.parse_args()
 
-def initialize_s3_component(args, logger):
-    """Initialize and configure S3Component"""
-    s3_config = {
+
+def create_s3_config(args: argparse.Namespace) -> Dict[str, Any]:
+    """
+    Create S3Component configuration from command line arguments.
+
+    Args:
+        args: Parsed command line arguments
+
+    Returns:
+        S3Component configuration dictionary
+    """
+    return {
         'endpoint': args.s3_endpoint,
-        'access_key': args.s3_access_key, 
+        'access_key': args.s3_access_key,
         'secret_key': args.s3_secret_key,
         'secure': args.s3_secure,
-        'buckets': {
-            'iso': args.iso_bucket,
-            'binary': args.binary_bucket
-        },
-        'create_buckets': True,  # Create buckets if they don't exist
+        'private_bucket': args.iso_bucket,
+        'public_bucket': args.iso_bucket,  # Using the same bucket for simplicity
+        'create_buckets_if_missing': True,
+        'component_id': 'workflow-s3-component',
         'dry_run': args.dry_run
     }
-    
-    logger.info(f"Initializing S3Component with endpoint {args.s3_endpoint}")
-    s3 = S3Component(s3_config, logger)
-    
-    # Run discovery phase
-    discovery_results = s3.discover()
-    if not discovery_results.get('connected', False):
-        logger.error("Failed to connect to S3 endpoint")
-        return None
-        
-    # Ensure buckets exist in process phase
-    process_results = s3.process()
-    
-    return s3
 
-def initialize_openshift_component(args, s3_component, logger):
-    """Initialize and configure OpenShiftComponent"""
-    # Create temporary directory if not specified
-    if args.temp_dir:
-        output_dir = args.temp_dir
-        os.makedirs(output_dir, exist_ok=True)
-    else:
-        output_dir = tempfile.mkdtemp()
-        
-    logger.info(f"Using output directory: {output_dir}")
-    
-    # Configure OpenShift component
-    openshift_config = {
+
+def create_openshift_config(args: argparse.Namespace) -> Dict[str, Any]:
+    """
+    Create OpenShiftComponent configuration from command line arguments.
+
+    Args:
+        args: Parsed command line arguments
+
+    Returns:
+        OpenShiftComponent configuration dictionary
+    """
+    return {
         'openshift_version': args.version,
         'domain': args.domain,
         'rendezvous_ip': args.rendezvous_ip,
         'pull_secret_path': args.pull_secret,
         'ssh_key_path': args.ssh_key,
-        'output_dir': output_dir,
+        'output_dir': args.temp_dir,
         'skip_upload': args.skip_upload,
         'upload_to_s3': not args.skip_upload,
         'cleanup_temp_files': not args.temp_dir,  # Only cleanup if using temp dir
+        'component_id': 'workflow-openshift-component',
         's3_config': {
             'iso_bucket': args.iso_bucket,
             'binary_bucket': args.binary_bucket
         },
+        'server_id': args.server_id,
+        'hostname': args.hostname,
         'dry_run': args.dry_run
     }
-    
-    logger.info(f"Initializing OpenShiftComponent for version {args.version}")
-    openshift = OpenShiftComponent(openshift_config, logger)
-    
-    # Set S3 component for storage
-    # In a real implementation, we would create a method to set this
-    # but for this example we'll just add it as an attribute
-    openshift.s3_component = s3_component
-    
-    return openshift
 
-def list_isos_in_s3(s3_component, iso_bucket, logger):
-    """List OpenShift ISOs stored in S3"""
-    logger.info(f"Listing ISOs in bucket {iso_bucket}")
+
+def list_isos_in_s3(s3_component: S3Component, logger: logging.Logger) -> int:
+    """
+    List OpenShift ISOs stored in S3 using the S3Component.
+
+    Args:
+        s3_component: Initialized S3Component
+        logger: Logger instance
+
+    Returns:
+        Number of ISOs found
+    """
+    iso_count = 0
     
-    # This is a simplified example - you would implement this using
-    # S3Component methods to list objects in a bucket
+    # This has been migrated to use the component's methods more directly
     try:
-        # We'll just reference the MinIO client directly for this example
-        objects = s3_component.client.list_objects(iso_bucket, prefix="openshift/", recursive=True)
+        # First check if we completed discovery
+        if not s3_component.phases_executed.get('discover', False):
+            logger.info("Running S3 discovery phase...")
+            s3_component.discover()
         
-        iso_count = 0
-        for obj in objects:
-            if obj.object_name.endswith('.iso'):
-                size_mb = obj.size / (1024 * 1024)
-                logger.info(f"  - {obj.object_name} ({size_mb:.1f} MB, last modified: {obj.last_modified})")
-                iso_count += 1
+        # Use the component to list ISOs
+        logger.info(f"Listing ISOs in bucket {s3_component.config.get('private_bucket')}")
+        iso_list = s3_component.list_isos()
+        
+        iso_count = len(iso_list)
         
         if iso_count == 0:
             logger.info("No ISO files found")
-            
+        else:
+            for iso in iso_list:
+                size_mb = iso.get('size', 0) / (1024 * 1024)
+                logger.info(f"  - {iso.get('key')} ({size_mb:.1f} MB, last modified: {iso.get('last_modified')})")
+        
         return iso_count
+        
     except Exception as e:
-        logger.error(f"Error listing ISOs: {e}")
+        logger.error(f"Error listing ISOs: {str(e)}")
         return 0
 
-def upload_iso_to_s3(openshift_component, s3_component, iso_bucket, logger):
-    """Upload ISO to S3 bucket"""
-    # In a real implementation, OpenShiftComponent would use S3Component
-    # to store artifacts. For this example script, we'll orchestrate it manually.
-    
-    iso_path = openshift_component.iso_path
-    if not iso_path or not os.path.exists(iso_path):
-        logger.error("ISO file not found")
-        return False
-        
-    iso_size = os.path.getsize(iso_path)
-    logger.info(f"Uploading ISO {iso_path} ({iso_size/(1024*1024):.1f} MB) to bucket {iso_bucket}")
-    
-    version = openshift_component.config.get('openshift_version')
-    object_name = f"openshift/{version}/agent.x86_64.iso"
-    
-    if openshift_component.config.get('dry_run', False):
-        logger.info(f"DRY RUN: Would upload ISO to {iso_bucket}/{object_name}")
-        return True
-        
+
+def run_workflow(args: argparse.Namespace, logger: logging.Logger) -> int:
+    """
+    Run the main workflow with error handling.
+
+    Args:
+        args: Parsed command line arguments
+        logger: Logger instance
+
+    Returns:
+        Exit code (0 for success, non-zero for failure)
+    """
     try:
-        # Create metadata JSON file
-        metadata_path = os.path.join(os.path.dirname(iso_path), "metadata.json")
-        metadata = {
-            "version": version,
-            "domain": openshift_component.config.get('domain'),
-            "rendezvous_ip": openshift_component.config.get('rendezvous_ip'),
-            "size_bytes": iso_size,
-            "generated_at": datetime.now().isoformat(),
-            "md5_hash": openshift_component.housekeeping_results.get('iso_hash')
-        }
+        # Initialize S3 component
+        logger.info("Initializing S3 component...")
+        s3_config = create_s3_config(args)
+        s3_component = S3Component(s3_config, logger)
         
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f, indent=2)
+        # Handle list-only request early
+        if args.list_only:
+            logger.info("List-only mode: Showing existing ISOs")
+            iso_count = list_isos_in_s3(s3_component, logger)
+            logger.info(f"Found {iso_count} ISO files")
+            return 0
+        
+        # Execute S3 discovery phase
+        logger.info("Running S3 discovery phase...")
+        s3_discovery_results = s3_component.discover()
+        
+        if not s3_discovery_results.get('connectivity', False):
+            error_msg = s3_discovery_results.get('error', 'Unknown error')
+            logger.error(f"Failed to connect to S3 endpoint: {error_msg}")
+            return 1
+        
+        logger.info(f"Successfully connected to S3 at {args.s3_endpoint}")
+        
+        # Initialize OpenShift component
+        logger.info("Initializing OpenShift component...")
+        openshift_config = create_openshift_config(args)
+        openshift_component = OpenShiftComponent(openshift_config, logger, s3_component)
+        
+        # Skip ISO generation if requested
+        if args.skip_iso:
+            logger.info("Skipping ISO generation as requested")
+        else:
+            # Run OpenShift discovery phase
+            logger.info("Running OpenShift discovery phase...")
+            openshift_discovery_results = openshift_component.discover()
             
-        # Upload ISO file
-        s3_component.client.fput_object(
-            iso_bucket, object_name, iso_path,
-            content_type="application/octet-stream"
-        )
+            # Check for required resources
+            if not openshift_discovery_results.get('pull_secret_available', False):
+                logger.error("Pull secret not found - required for ISO generation")
+                return 1
+            
+            if not openshift_discovery_results.get('ssh_key_available', False):
+                logger.error("SSH key not found - required for ISO generation")
+                return 1
+            
+            # Generate ISO (process phase)
+            logger.info("Running OpenShift processing phase (generating ISO)...")
+            openshift_process_results = openshift_component.process()
+            
+            if not openshift_process_results.get('iso_generated', False):
+                error_msg = openshift_process_results.get('error', 'Unknown error')
+                logger.error(f"Failed to generate ISO: {error_msg}")
+                return 1
+            
+            logger.info(f"Successfully generated ISO at: {openshift_process_results.get('iso_path')}")
+            
+            # Run housekeeping phase
+            logger.info("Running OpenShift housekeeping phase...")
+            openshift_housekeep_results = openshift_component.housekeep()
+            
+            if openshift_housekeep_results.get('iso_verified', False):
+                logger.info("ISO verification successful")
+            
+        # Run S3 processing phase (needed for bucket creation/verification)
+        logger.info("Running S3 processing phase...")
+        s3_process_results = s3_component.process()
         
-        # Upload metadata file
-        metadata_object_name = f"openshift/{version}/metadata.json"
-        s3_component.client.fput_object(
-            iso_bucket, metadata_object_name, metadata_path,
-            content_type="application/json"
-        )
+        # Run S3 housekeeping phase
+        logger.info("Running S3 housekeeping phase...")
+        s3_housekeep_results = s3_component.housekeep()
         
-        logger.info(f"Successfully uploaded ISO and metadata to {iso_bucket}")
-        return True
+        # Final verification checks
+        if not args.skip_iso and not args.skip_upload:
+            logger.info("Verifying workflow completion...")
+            
+            if openshift_process_results.get('upload_status') == 'success':
+                logger.info("ISO successfully uploaded to S3")
+                logger.info(f"S3 path: {openshift_process_results.get('s3_iso_path')}")
+            else:
+                logger.warning("ISO may not have been uploaded to S3 - check logs")
+        
+        logger.info("Workflow completed successfully")
+        return 0
         
     except Exception as e:
-        logger.error(f"Error uploading ISO to S3: {e}")
-        return False
+        logger.error(f"Workflow failed with error: {str(e)}")
+        import traceback
+        logger.debug(traceback.format_exc())
+        return 1
 
-def main():
-    """Main function"""
+
+def main() -> int:
+    """
+    Main entry point with basic error handling.
+
+    Returns:
+        Exit code (0 for success, non-zero for failure)
+    """
     args = parse_arguments()
     logger = setup_logging(args.verbose)
     
-    # Initialize S3 component
-    s3 = initialize_s3_component(args, logger)
-    if not s3:
+    try:
+        return run_workflow(args, logger)
+    except Exception as e:
+        logger.error(f"Unhandled exception: {str(e)}")
+        if args.verbose:
+            import traceback
+            logger.error(traceback.format_exc())
         return 1
-    
-    # List ISOs only if requested
-    if args.list_only:
-        iso_count = list_isos_in_s3(s3, args.iso_bucket, logger)
-        logger.info(f"Found {iso_count} ISO files")
-        return 0
-    
-    # Initialize OpenShift component
-    openshift = initialize_openshift_component(args, s3, logger)
-    
-    # Discovery phase
-    logger.info("Starting OpenShift component discovery...")
-    openshift.discover()
-    
-    # Skip ISO generation if requested
-    if args.skip_iso:
-        logger.info("Skipping ISO generation as requested")
-    else:
-        # Generate ISO
-        logger.info("Starting OpenShift ISO generation...")
-        openshift.process()
-        
-        # Verify ISO and perform housekeeping
-        logger.info("Performing housekeeping...")
-        openshift.housekeep()
-    
-    # Upload ISO to S3 if it exists and upload not skipped
-    if not args.skip_upload and openshift.iso_path and os.path.exists(openshift.iso_path):
-        upload_iso_to_s3(openshift, s3, args.iso_bucket, logger)
-    
-    logger.info("Workflow completed successfully")
-    return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
