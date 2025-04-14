@@ -1,0 +1,6 @@
+# Framework requirements for r630-iscsi-switchbot component architecture
+boto3>=1.28.0      # AWS S3 SDK for Python
+python-dotenv>=1.0.0   # Environment variable management
+requests>=2.31.0   # HTTP library for API calls
+pyyaml>=6.0.0      # YAML parsing for configuration files
+typing-extensions>=4.7.0  # Enhanced typing support

@@ -1,0 +1,331 @@
+name: Component Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'framework/**'
+      - 'scripts/**'
+      - '.github/workflows/component-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'framework/**'
+      - 'scripts/**'
+
+jobs:
+  test-s3-component:
+    runs-on: ubuntu-latest
+    services:
+      minio:
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
+          - 9001:9001
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+          --name minio-server
+        volumes:
+          - /tmp/data:/data
+        
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install boto3 minio
+          
+      - name: Wait for MinIO to be ready
+        run: |
+          timeout 60s bash -c 'until curl -s http://localhost:9000/minio/health/live; do sleep 1; done'
+      
+      - name: Test S3Component
+        run: |
+          python scripts/test_s3_minio.py \
+            --endpoint localhost:9000 \
+            --access-key minioadmin \
+            --secret-key minioadmin \
+            --create-buckets \
+            --file-size 1048576 \
+            --cleanup
+            
+      - name: Test workflow script
+        run: |
+          python scripts/workflow_iso_generation_s3.py \
+            --s3-endpoint localhost:9000 \
+            --s3-access-key minioadmin \
+            --s3-secret-key minioadmin \
+            --list-only
+
+  test-vault-component:
+    runs-on: ubuntu-latest
+    services:
+      vault:
+        image: hashicorp/vault:latest
+        ports:
+          - 8200:8200
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: devtoken
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        options: >-
+          --cap-add=IPC_LOCK
+          --name vault-server
+          
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install requests python-dotenv
+          
+      - name: Wait for Vault to be ready
+        run: |
+          timeout 60s bash -c 'until curl -s http://localhost:8200/v1/sys/health | grep "initialized"; do sleep 1; done'
+          
+      - name: Create test script
+        run: |
+          cat > test_vault.py << 'EOF'
+          import sys
+          import os
+          sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+          from framework.components.vault_component import VaultComponent
+          
+          # Configure Vault component
+          config = {
+              'vault_addr': 'http://localhost:8200',
+              'vault_token': 'devtoken',
+              'vault_mount_point': 'secret',
+              'vault_path_prefix': 'r630-switchbot-test'
+          }
+          
+          # Initialize component
+          vault = VaultComponent(config)
+          
+          # Run discovery
+          discovery_results = vault.discover()
+          print(f"Vault connected: {discovery_results.get('connected', False)}")
+          print(f"Token valid: {discovery_results.get('token_valid', False)}")
+          
+          # Exit with error if not connected
+          if not discovery_results.get('connected', False) or not discovery_results.get('token_valid', False):
+              print("Failed to connect to Vault or invalid token")
+              sys.exit(1)
+              
+          # Run process phase
+          process_results = vault.process()
+          
+          # Test secret operations
+          test_path = 'test/mysecret'
+          test_data = {'username': 'testuser', 'password': 'testpass123'}
+          
+          # Store secret
+          result = vault.put_secret(test_path, test_data)
+          print(f"Put secret result: {result}")
+          
+          # Get secret
+          secret = vault.get_secret(test_path)
+          print(f"Secret data matches: {secret == test_data}")
+          
+          # Get specific key
+          username = vault.get_secret(test_path, 'username')
+          print(f"Username retrieved: {username == 'testuser'}")
+          
+          # List secrets
+          secrets = vault.list_secrets('test')
+          print(f"List secrets result: {secrets}")
+          
+          # Delete secret
+          delete_result = vault.delete_secret(test_path)
+          print(f"Delete result: {delete_result}")
+          
+          # Check if all tests passed
+          all_passed = (
+              discovery_results.get('connected', False) and
+              discovery_results.get('token_valid', False) and
+              result and
+              secret == test_data and
+              username == 'testuser' and
+              delete_result
+          )
+          
+          if all_passed:
+              print("All Vault component tests passed!")
+              sys.exit(0)
+          else:
+              print("Some tests failed")
+              sys.exit(1)
+          EOF
+          
+      - name: Test VaultComponent
+        run: |
+          export VAULT_ADDR=http://localhost:8200
+          export VAULT_TOKEN=devtoken
+          python test_vault.py
+          
+      - name: Test Secrets Provider
+        run: |
+          export VAULT_ADDR=http://localhost:8200
+          export VAULT_TOKEN=devtoken
+          
+          # Initialize and test secret management
+          python scripts/secrets_provider.py --init \
+            --vault-addr http://localhost:8200 \
+            --vault-token devtoken
+            
+          # Store a test secret
+          python scripts/secrets_provider.py \
+            --put test/api_credentials \
+            --data '{"username": "apiuser", "password": "apipass", "url": "https://api.example.com"}'
+            
+          # Retrieve the secret
+          python scripts/secrets_provider.py --get test/api_credentials
+
+  test-integration:
+    runs-on: ubuntu-latest
+    needs: [test-s3-component, test-vault-component]
+    services:
+      minio:
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+        volumes:
+          - /tmp/data:/data
+      
+      vault:
+        image: hashicorp/vault:latest
+        ports:
+          - 8200:8200
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: devtoken
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        options: >-
+          --cap-add=IPC_LOCK
+      
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install boto3 minio requests python-dotenv
+      
+      - name: Wait for services
+        run: |
+          timeout 60s bash -c 'until curl -s http://localhost:9000/minio/health/live; do sleep 1; done'
+          timeout 60s bash -c 'until curl -s http://localhost:8200/v1/sys/health | grep "initialized"; do sleep 1; done'
+      
+      - name: Store S3 credentials in Vault
+        run: |
+          # Store S3 credentials in Vault
+          export VAULT_ADDR=http://localhost:8200
+          export VAULT_TOKEN=devtoken
+          
+          # Create test script
+          cat > store_credentials.py << 'EOF'
+          import sys
+          import os
+          sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+          from framework.components.vault_component import VaultComponent
+          
+          # Configure Vault component
+          config = {
+              'vault_addr': 'http://localhost:8200',
+              'vault_token': 'devtoken',
+              'vault_mount_point': 'secret',
+              'vault_path_prefix': 'r630-switchbot'
+          }
+          
+          # Initialize component
+          vault = VaultComponent(config)
+          
+          # Store S3 credentials
+          vault.put_secret('s3/credentials', {
+              'access_key': 'minioadmin',
+              'secret_key': 'minioadmin',
+              'endpoint': 'localhost:9000'
+          })
+          
+          print("Credentials stored in Vault")
+          EOF
+          
+          python store_credentials.py
+      
+      - name: Test integration with secrets from Vault
+        run: |
+          # Create test script
+          cat > integration_test.py << 'EOF'
+          import sys
+          import os
+          import json
+          sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+          from scripts.secrets_provider import init, get_secret, process_references
+          
+          # Initialize secrets provider
+          init(
+              vault_addr='http://localhost:8200',
+              vault_token='devtoken',
+              vault_path_prefix='r630-switchbot'
+          )
+          
+          # Get S3 credentials from Vault
+          s3_creds = get_secret('s3/credentials')
+          
+          print(f"Retrieved S3 credentials from Vault: {json.dumps(s3_creds)}")
+          
+          # Test reference resolution in configuration
+          config = {
+              's3': {
+                  'endpoint': 'secret:s3/credentials:endpoint',
+                  'access_key': 'secret:s3/credentials:access_key',
+                  'secret_key': 'secret:s3/credentials:secret_key'
+              },
+              'other_setting': 'normal_value'
+          }
+          
+          processed_config = process_references(config)
+          print(f"Processed config: {json.dumps(processed_config)}")
+          
+          # Verify resolution worked
+          if processed_config['s3']['endpoint'] == 'localhost:9000' and \
+             processed_config['s3']['access_key'] == 'minioadmin' and \
+             processed_config['s3']['secret_key'] == 'minioadmin':
+              print("Secret reference resolution successful!")
+              sys.exit(0)
+          else:
+              print("Secret reference resolution failed")
+              sys.exit(1)
+          EOF
+          
+          python integration_test.py
