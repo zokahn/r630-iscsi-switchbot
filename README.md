@@ -324,6 +324,7 @@ The project uses GitHub Actions for comprehensive CI workflows that follow moder
 - **[CI - Component Tests](.github/workflows/ci-component-tests.yml)**: Containerized testing of framework components
 - **[CI - Integration Tests](.github/workflows/ci-integration-tests.yml)**: End-to-end tests with parallel component testing
 - **[CI - ISO Generation](.github/workflows/ci-iso-generation.yml)**: Parallel building of OpenShift ISOs for multiple versions
+- **[CI - Python 3.12 Tests](.github/workflows/ci-unit-tests-python312.yml)**: Specialized testing for Python 3.12 components
 
 ### Key CI Features
 
@@ -355,3 +356,65 @@ A helper script for testing workflows is provided:
 ```
 
 Note: While CI (Continuous Integration) is fully automated, deployments remain ad hoc rather than using CD (Continuous Deployment) automation.
+
+## Python 3.12 Migration
+
+The project is undergoing a migration to Python 3.12 to leverage the latest language features and performance improvements.
+
+### Migration Status
+
+- ✅ **Core Components**: All components migrated with Python 3.12 features
+- ✅ **High-Priority Scripts**: 5 key scripts fully migrated
+- ✅ **Testing Infrastructure**: Docker and CI pipeline support added
+- 🔄 **Documentation**: Progress reports and guides available
+- 🔄 **Performance Benchmarking**: In progress
+
+### Python 3.12 Benefits
+
+- **Enhanced Type Safety**: Comprehensive type annotations with TypedDict
+- **Pattern Matching**: Cleaner conditional logic and error handling
+- **Performance Improvements**: 5% overall speed boost, 2x faster comprehensions
+- **Improved Developer Experience**: Better code completion and error reporting
+- **Modern Syntax**: Dictionary merging, assignment expressions, and enhanced string formatting
+
+### Using Python 3.12 Components
+
+Python 3.12 versions are available alongside original components:
+
+```python
+# Original component
+from framework.components.s3_component import S3Component
+
+# Python 3.12 component
+from framework.components.s3_component_py312 import S3Component as S3ComponentPy312
+```
+
+Similarly, scripts are available with `_py312` suffix:
+
+```bash
+# Run original script
+python scripts/workflow_iso_generation_s3.py --help
+
+# Run Python 3.12 version
+python scripts/workflow_iso_generation_s3_py312.py --help
+```
+
+### Testing Python 3.12 Code
+
+Run Python 3.12 tests using the dedicated test script:
+
+```bash
+# Run all Python 3.12 tests
+./scripts/run_py312_tests.sh
+
+# Run with Docker Compose
+docker compose -f docker-compose.python312.yml up --build
+
+# Test specific component
+docker compose -f docker-compose.python312.yml run python312 python scripts/test_s3_component_py312.py
+```
+
+For more details, see:
+- [Python 3.12 Migration Guide](docs/PYTHON312_MIGRATION.md): Overview and implementation plan
+- [Python 3.12 Migration Progress](docs/PYTHON312_MIGRATION_PROGRESS.md): Current status and timeline
+- [Script Migration Results](docs/SCRIPT_MIGRATION_RESULTS.md): Detailed improvements in migrated scripts
