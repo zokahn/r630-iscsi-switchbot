@@ -1,0 +1,21 @@
+# R630 iSCSI SwitchBot Requirements
+# Core dependencies
+boto3>=1.28.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# For TrueNAS integration
+urllib3>=2.0.0
+certifi>=2023.5.7
+
+# For OpenShift
+pyyaml>=6.0.0
+
+# For HashiCorp Vault
+hvac>=1.1.0  # Optional Vault client
+
+# For testing
+pytest>=7.3.1
+pytest-mock>=3.10.0
+moto>=4.1.0  # For testing S3
