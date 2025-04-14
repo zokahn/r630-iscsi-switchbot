@@ -1,0 +1,69 @@
+# Dependabot configuration file for r630-iscsi-switchbot
+# This automatically checks for dependency updates and creates PRs
+
+version: 2
+updates:
+  # Check for updates to Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 5
+    assignees:
+      - "bvandenh"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Group development dependencies together
+    groups:
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "mock*"
+          - "flake8*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Check for updates to framework-specific dependencies
+  - package-ecosystem: "pip"
+    directory: "/framework/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "framework"
+    commit-message:
+      prefix: "deps(framework)"
+    # Avoid updating during critical periods
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Check for updates to GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 3
+    assignees:
+      - "bvandenh"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

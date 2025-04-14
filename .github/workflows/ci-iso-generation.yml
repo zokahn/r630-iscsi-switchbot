@@ -1,0 +1,200 @@
+name: "CI - ISO Generation"
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: 'OpenShift versions (comma-separated, e.g., 4.17,4.18)'
+        required: true
+        default: '4.18'
+      rendezvous_ip:
+        description: 'Rendezvous IP for OpenShift agent installer'
+        required: true
+        default: '192.168.2.230'
+      truenas_ip:
+        description: 'TrueNAS server IP'
+        required: true
+        default: '192.168.2.245'
+      skip_upload:
+        description: 'Skip uploading to TrueNAS (true/false)'
+        required: false
+        default: 'false'
+
+jobs:
+  prepare-iso-generation:
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Validate inputs and environment
+        id: validate
+        run: |
+          # Parse and validate version input
+          echo "Parsing versions: ${{ github.event.inputs.versions }}"
+          IFS=',' read -ra VERSIONS <<< "${{ github.event.inputs.versions }}"
+          VERSIONS_JSON="["
+          for version in "${VERSIONS[@]}"; do
+            if [ ! -z "$version" ]; then
+              if [ "$VERSIONS_JSON" != "[" ]; then
+                VERSIONS_JSON="$VERSIONS_JSON,"
+              fi
+              VERSIONS_JSON="$VERSIONS_JSON\"$version\""
+            fi
+          done
+          VERSIONS_JSON="$VERSIONS_JSON]"
+          echo "versions_json=$VERSIONS_JSON" >> $GITHUB_OUTPUT
+          echo "Will generate ISOs for: ${VERSIONS[@]}"
+          
+          # Check TrueNAS connectivity
+          if [[ "${{ github.event.inputs.skip_upload }}" != "true" ]]; then
+            echo "Checking connectivity to TrueNAS at ${{ github.event.inputs.truenas_ip }}"
+            ping -c 1 ${{ github.event.inputs.truenas_ip }} || echo "Warning: TrueNAS may not be reachable"
+          fi
+          
+          # Check for required secrets
+          if [ -z "${{ secrets.OPENSHIFT_PULL_SECRET }}" ]; then
+            echo "::error::OpenShift pull secret is missing"
+            exit 1
+          fi
+          
+          if [[ "${{ github.event.inputs.skip_upload }}" != "true" && -z "${{ secrets.TRUENAS_SSH_KEY }}" ]]; then
+            echo "::error::TrueNAS SSH key is missing and upload is not skipped"
+            exit 1
+          fi
+          
+          # Cache directory for SSH keys and pull secrets
+          mkdir -p ~/.cache/iso-generation
+
+  generate-iso:
+    needs: prepare-iso-generation
+    name: Generate OpenShift ISO ${{ matrix.version }}
+    runs-on: [self-hosted]
+    strategy:
+      fail-fast: false  # Continue with other versions if one fails
+      matrix:
+        version: ${{ fromJson(needs.prepare-iso-generation.outputs.versions_json) }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pyyaml
+          
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          
+          # Check if SSH key already exists
+          if [ ! -f ~/.ssh/id_rsa.pub ]; then
+            echo "Generating new SSH key..."
+            ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "r630-switchbot@github-actions"
+          else
+            echo "Using existing SSH key"
+          fi
+          
+      - name: Generate OpenShift ISO for ${{ matrix.version }}
+        env:
+          OPENSHIFT_PULL_SECRET: ${{ secrets.OPENSHIFT_PULL_SECRET }}
+        run: |
+          # Create a temporary file with the pull secret
+          PULL_SECRET_FILE=$(mktemp)
+          echo "$OPENSHIFT_PULL_SECRET" > $PULL_SECRET_FILE
+          
+          # Create output directory for this version
+          mkdir -p iso-output/${{ matrix.version }}
+          
+          # Run the script with explicit pull secret file
+          echo "Generating OpenShift ${{ matrix.version }} ISO..."
+          python scripts/generate_openshift_iso.py \
+            --version ${{ matrix.version }} \
+            --rendezvous-ip ${{ github.event.inputs.rendezvous_ip }} \
+            --ssh-key ~/.ssh/id_rsa.pub \
+            --pull-secret $PULL_SECRET_FILE \
+            --output-dir iso-output/${{ matrix.version }} \
+            ${{ github.event.inputs.skip_upload == 'true' && '--skip-upload' || '' }}
+            
+          # Move ISO to version-specific filename
+          if [ -f agent.x86_64.iso ]; then
+            mv agent.x86_64.iso iso-output/${{ matrix.version }}/agent-${{ matrix.version }}.x86_64.iso
+          fi
+          
+          # Clean up the temporary file
+          rm $PULL_SECRET_FILE
+          
+      - name: Upload ISO as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openshift-${{ matrix.version }}-iso
+          path: iso-output/${{ matrix.version }}/agent-${{ matrix.version }}.x86_64.iso
+          retention-days: 1
+            
+      - name: Upload ISO to TrueNAS
+        if: ${{ github.event.inputs.skip_upload != 'true' }}
+        env:
+          TRUENAS_SSH_KEY: ${{ secrets.TRUENAS_SSH_KEY }}
+          TRUENAS_KNOWN_HOSTS: ${{ secrets.TRUENAS_KNOWN_HOSTS }}
+        run: |
+          # Setup SSH for TrueNAS
+          mkdir -p ~/.ssh
+          TRUENAS_KEY_FILE=$(mktemp)
+          echo "$TRUENAS_SSH_KEY" > $TRUENAS_KEY_FILE
+          chmod 600 $TRUENAS_KEY_FILE
+          
+          if [ ! -z "$TRUENAS_KNOWN_HOSTS" ]; then
+            echo "$TRUENAS_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            # If no known_hosts provided, disable strict host key checking
+            mkdir -p ~/.ssh
+            echo "StrictHostKeyChecking no" > ~/.ssh/config
+          fi
+          
+          # Ensure target directory exists
+          ssh -i $TRUENAS_KEY_FILE root@${{ github.event.inputs.truenas_ip }} "mkdir -p /mnt/tank/openshift_isos/${{ matrix.version }}"
+          
+          # Upload using SCP
+          echo "Uploading ISO to TrueNAS..."
+          scp -i $TRUENAS_KEY_FILE \
+            iso-output/${{ matrix.version }}/agent-${{ matrix.version }}.x86_64.iso \
+            root@${{ github.event.inputs.truenas_ip }}:/mnt/tank/openshift_isos/${{ matrix.version }}/agent.x86_64.iso
+          
+          echo "ISO uploaded to TrueNAS at http://${{ github.event.inputs.truenas_ip }}/openshift_isos/${{ matrix.version }}/agent.x86_64.iso"
+          
+          # Clean up
+          rm $TRUENAS_KEY_FILE
+
+  summarize:
+    needs: generate-iso
+    if: always()
+    runs-on: [self-hosted]
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## ISO Generation Summary" > iso-summary.md
+          echo "Versions processed:" >> iso-summary.md
+          
+          IFS=',' read -ra VERSIONS <<< "${{ github.event.inputs.versions }}"
+          for version in "${VERSIONS[@]}"; do
+            echo "- OpenShift $version" >> iso-summary.md
+          done
+          
+          echo "" >> iso-summary.md
+          if [[ "${{ github.event.inputs.skip_upload }}" == "true" ]]; then
+            echo "ISOs generated but not uploaded to TrueNAS (skip-upload was enabled)" >> iso-summary.md
+          else
+            echo "ISOs uploaded to TrueNAS at ${{ github.event.inputs.truenas_ip }}" >> iso-summary.md
+            for version in "${VERSIONS[@]}"; do
+              echo "- http://${{ github.event.inputs.truenas_ip }}/openshift_isos/$version/agent.x86_64.iso" >> iso-summary.md
+            done
+          fi
+          
+      - name: Upload Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: iso-generation-summary
+          path: iso-summary.md
