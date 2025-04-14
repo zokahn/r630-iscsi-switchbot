@@ -23,6 +23,14 @@ var/
 # MkDocs
 site/
 
+# Environment variables and secrets
+.env
+.env.test
+.env.local
+.env.development
+.env.production
+.vault-token
+
 # Virtual Environment
 venv/
 ENV/
@@ -54,6 +62,9 @@ config/deployments/
 
 # Test reports
 test_report.md
+test-output/
+minio-data/
+s3-test-data/
 
 # OpenShift ISO generation
 test_run/
