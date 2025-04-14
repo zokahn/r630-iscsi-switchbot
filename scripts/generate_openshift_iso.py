@@ -1,339 +1,250 @@
 #!/usr/bin/env python3
-# generate_openshift_iso.py - Generate OpenShift agent-based ISO and upload to TrueNAS
+"""
+generate_openshift_iso.py - Generate OpenShift agent-based ISO and upload to TrueNAS
 
-import argparse
+This script uses the OpenShiftComponent to generate an OpenShift ISO file and optionally
+upload it to TrueNAS. It follows the discovery-processing-housekeeping pattern for better
+error handling and component-based architecture.
+"""
+
 import os
-import subprocess
 import sys
+import logging
+import argparse
 import tempfile
 import shutil
-import requests
 import yaml
+import subprocess
 from pathlib import Path
+from typing import Dict, Any, Optional, Tuple
 
-# Import our secrets provider
+# Add project root to path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+
+# Import components
+from framework.components.openshift_component import OpenShiftComponent
+
+# Import secrets provider
 try:
-    from secrets_provider import process_references, get_secret, put_secret
+    from scripts.secrets_provider import process_references, get_secret, put_secret
 except ImportError:
-    # If running from a different directory, try to import using the script's directory
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    try:
-        from secrets_provider import process_references, get_secret, put_secret
-    except ImportError:
-        # Define placeholder functions to avoid errors if the module is missing
-        def process_references(data):
-            return data
+    # Define placeholder functions to avoid errors if the module is missing
+    def process_references(data):
+        return data
 
-        def get_secret(path, key=None):
-            print(f"Warning: secrets_provider module not found, can't retrieve secret from {path}")
-            return None
-
-        def put_secret(path, content, key=None):
-            print(f"Warning: secrets_provider module not found, can't store secret to {path}")
-            return False
-
-def download_openshift_installer(version, output_dir):
-    """
-    Download the OpenShift installer binary for a specific version
-    or use an existing one if it's already present and of the correct version
-    """
-    installer_path = os.path.join(output_dir, "openshift-install")
-    
-    # Check if installer already exists
-    if os.path.exists(installer_path):
-        try:
-            # Check the version of the existing installer
-            result = subprocess.run(
-                [installer_path, "version"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            current_version = result.stdout.strip()
-            print(f"Found existing OpenShift installer: {current_version}")
-            
-            # For "stable" we'll always use what we have
-            if version == "stable":
-                print("Using existing OpenShift installer (requested 'stable' version)")
-                return True
-                
-            # For specific versions, check if it matches
-            if version in current_version:
-                print(f"Using existing OpenShift installer - matches requested version {version}")
-                return True
-            else:
-                print(f"Existing installer ({current_version}) doesn't match requested version ({version})")
-                # Continue to download the requested version
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            print("Existing installer check failed, will download fresh copy")
-            # Continue to download
-    
-    # Format version for URL (e.g., 4.18.0 -> 4.18.0, 4.18 -> latest 4.18.x)
-    if len(version.split('.')) < 3 and version != "stable":
-        # If just major.minor (e.g., 4.18), use format suited for latest in that stream
-        version_for_url = f"{version}.x"
-    else:
-        # Full version specified or "stable"
-        version_for_url = version
-    
-    # Determine OS and architecture
-    if sys.platform.startswith('linux'):
-        os_type = 'linux'
-    elif sys.platform == 'darwin':
-        os_type = 'mac'
-    else:
-        print(f"Unsupported operating system: {sys.platform}")
-        return False
-    
-    # Use 'amd64' as the architecture since that's the most common
-    arch = 'amd64'
-    
-    # Construct URL for the installer
-    if version == "stable":
-        # Use stable URL format
-        url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-{os_type}.tar.gz"
-    else:
-        # Try version-specific URL - note that macOS doesn't use the architecture suffix
-        if os_type == "mac":
-            url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{version_for_url}/openshift-install-{os_type}.tar.gz"
-        else:
-            url = f"https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{version_for_url}/openshift-install-{os_type}-{arch}.tar.gz"
-    
-    installer_tar = os.path.join(output_dir, "openshift-install.tar.gz")
-    
-    print(f"Downloading OpenShift installer version {version} from {url}")
-    try:
-        # Download the tarball
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        
-        with open(installer_tar, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        
-        # Extract the tarball
-        subprocess.run(['tar', '-xzf', installer_tar, '-C', output_dir], check=True)
-        
-        # Make the installer executable
-        os.chmod(installer_path, 0o755)
-        
-        # Clean up the tarball to save disk space
-        if os.path.exists(installer_tar):
-            os.unlink(installer_tar)
-        
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading OpenShift installer: {e}")
-        return False
-    except subprocess.CalledProcessError as e:
-        print(f"Error extracting OpenShift installer: {e}")
-        return False
-
-def create_install_config(output_dir, version, domain, pull_secret, ssh_key, installation_disk=None):
-    """
-    Create the install-config.yaml file
-    
-    This function generates the install-config.yaml using direct string formatting
-    instead of yaml.dump() to avoid issues with complex structures like pull secrets.
-    It also properly places bootstrapInPlace configuration in this file where it belongs.
-    
-    Note: This is a Day 1 configuration focused on basic installation.
-    Advanced settings should be configured as Day 2 operations.
-    """
-    install_config_path = os.path.join(output_dir, "install-config.yaml")
-    
-    # Base configuration - Note: Using Single Node OpenShift (SNO) settings
-    content = f"""apiVersion: v1
-baseDomain: {domain}
-metadata:
-  name: r630-cluster
-compute:
-- architecture: amd64
-  hyperthreading: Enabled
-  name: worker
-  replicas: 0
-controlPlane:
-  architecture: amd64
-  hyperthreading: Enabled
-  name: master
-  replicas: 1
-networking:
-  networkType: OVNKubernetes
-  clusterNetwork:
-  - cidr: 10.128.0.0/14
-    hostPrefix: 23
-  serviceNetwork:
-  - 172.30.0.0/16
-platform:
-  none: {{}}
-"""
-
-    # Add bootstrapInPlace if installation disk is provided
-    if installation_disk:
-        content += f"""bootstrapInPlace:
-  installationDisk: {installation_disk}
-"""
-
-    # Add credentials at the end to maintain proper YAML structure
-    content += f"pullSecret: '{pull_secret}'\n"
-    content += f"sshKey: '{ssh_key}'\n"
-    
-    with open(install_config_path, 'w') as f:
-        f.write(content)
-    
-    print(f"Created install-config.yaml for OpenShift {version}")
-    return True
-
-def create_agent_config(output_dir, values=None, rendezvous_ip=None):
-    """
-    Create the agent-config.yaml file using values from config or command line
-    
-    Note: bootstrapInPlace should be in install-config.yaml, not in agent-config.yaml.
-    This is a Day 1 configuration focused on the minimal settings needed.
-    """
-    agent_config_path = os.path.join(output_dir, "agent-config.yaml")
-    
-    # If values are provided, use them; otherwise use basic parameters
-    if values:
-        # Extract basic cluster info
-        cluster_name = values.get('metadata', {}).get('name', 'r630-cluster')
-        
-        # Extract network configuration from SNO section if available
-        sno_config = values.get('sno', {})
-        node_ip = sno_config.get('nodeIP', rendezvous_ip)
-        
-        # Set network interface details - default to eno2 as per environment
-        interface_name = sno_config.get('interface', 'eno2')
-        mac_address = sno_config.get('macAddress', None)
-        
-        # Determine if using DHCP or static IP
-        use_dhcp = sno_config.get('useDhcp', True)
-        prefix_length = sno_config.get('prefixLength', 24)
-        
-        # Network infrastructure details
-        dns_servers = sno_config.get('dnsServers', None)
-        
-        # SNO hostname
-        hostname = sno_config.get('hostname', 'r630-control-1')
-        
-        # Storage configuration for bootstrap-in-place
-        bootstrap_in_place = values.get('bootstrapInPlace', {})
-        installation_disk = bootstrap_in_place.get('installationDisk', None)
-        
-        # Use string templating for agent-config.yaml instead of yaml.dump
-        # to avoid formatting issues with complex structures
-        content = f"""apiVersion: v1beta1
-kind: AgentConfig
-metadata:
-  name: {cluster_name}
-rendezvousIP: {node_ip}
-hosts:
-  - hostname: {hostname}
-    role: master
-    interfaces:
-      - macAddress: {mac_address}"""
-
-        # Add rootDeviceHints if installation disk is specified
-        if installation_disk:
-            content += f"""
-    rootDeviceHints:
-      deviceName: "{installation_disk}" """
-        
-        # For static IP configuration, add networkConfig
-        if not use_dhcp:
-            content += f"""
-    networkConfig:
-      interfaces:
-        - name: {interface_name}
-          type: ethernet
-          state: up
-          ipv4:
-            enabled: true
-            address:
-              - ip: {node_ip}
-                prefix-length: {prefix_length}
-            dhcp: false"""
-            
-            # Add DNS configuration if provided
-            if dns_servers:
-                content += """
-      dns-resolver:
-        config:
-          server:"""
-                for dns in dns_servers:
-                    content += f"""
-            - {dns}"""
-        
-    else:
-        # Basic config if no values provided (fallback for backward compatibility)
-        if not rendezvous_ip:
-            print("Error: No rendezvous IP provided and no values file specified")
-            return False
-            
-        content = f"""apiVersion: v1beta1
-kind: AgentConfig
-metadata:
-  name: r630-cluster
-rendezvousIP: {rendezvous_ip}
-hosts:
-  - hostname: r630-control-1
-    role: master
-    networkConfig:
-      interfaces:
-        - name: eno1
-          type: ethernet
-          state: up
-          ipv4:
-            enabled: true
-            address:
-              - ip: {rendezvous_ip}
-                prefix-length: 24
-            dhcp: false
-"""
-    
-    with open(agent_config_path, 'w') as f:
-        f.write(content)
-    
-    print(f"Created agent-config.yaml with rendezvous IP {rendezvous_ip or node_ip}")
-    return True
-
-def generate_iso(output_dir, version):
-    """Generate the ISO using the openshift-install command"""
-    installer_path = os.path.join(output_dir, "openshift-install")
-    
-    print(f"Generating agent-based ISO for OpenShift {version}...")
-    try:
-        # Run the openshift-install command
-        subprocess.run([
-            installer_path, 
-            "agent", "create", "image", 
-            "--dir", output_dir
-        ], check=True)
-        
-        # Check if ISO was generated
-        iso_path = os.path.join(output_dir, "agent.x86_64.iso")
-        if os.path.exists(iso_path):
-            print(f"Successfully generated ISO at {iso_path}")
-            return iso_path
-        else:
-            print("ISO was not generated. Check logs for errors.")
-            return None
-    except subprocess.CalledProcessError as e:
-        print(f"Error generating ISO: {e}")
+    def get_secret(path, key=None):
+        print(f"Warning: secrets_provider module not found, can't retrieve secret from {path}")
         return None
 
-def load_values_from_file(values_file):
-    """Load OpenShift installation values from a YAML file"""
+    def put_secret(path, content, key=None):
+        print(f"Warning: secrets_provider module not found, can't store secret to {path}")
+        return False
+
+
+def setup_logging(verbose: bool = False) -> logging.Logger:
+    """
+    Set up logging configuration with proper formatting.
+
+    Args:
+        verbose: Whether to use DEBUG level logging
+
+    Returns:
+        Configured logger instance
+    """
+    log_level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler()]
+    )
+    return logging.getLogger("openshift-iso")
+
+
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command line arguments with proper typing and descriptions.
+
+    Returns:
+        Parsed arguments as Namespace
+    """
+    parser = argparse.ArgumentParser(
+        description="Generate OpenShift agent-based ISO and upload to TrueNAS using the component architecture"
+    )
+    
+    # OpenShift configuration
+    openshift_group = parser.add_argument_group('OpenShift Configuration')
+    openshift_group.add_argument(
+        "--version", 
+        default="4.18",
+        help="OpenShift version (e.g., 4.18 or 4.18.0)"
+    )
+    openshift_group.add_argument(
+        "--domain", 
+        default="example.com",
+        help="Base domain for the cluster"
+    )
+    openshift_group.add_argument(
+        "--rendezvous-ip", 
+        required=True,
+        help="Rendezvous IP address (primary node)"
+    )
+    openshift_group.add_argument(
+        "--pull-secret",
+        help="Path to pull secret file (if not provided, will try ~/.openshift/pull-secret)"
+    )
+    openshift_group.add_argument(
+        "--ssh-key",
+        help="Path to SSH public key (if not provided, will try ~/.ssh/id_rsa.pub)"
+    )
+    openshift_group.add_argument(
+        "--values-file",
+        help="Path to YAML file with OpenShift installation values"
+    )
+    
+    # TrueNAS configuration
+    truenas_group = parser.add_argument_group('TrueNAS Configuration')
+    truenas_group.add_argument(
+        "--truenas-ip", 
+        default="192.168.2.245",
+        help="TrueNAS IP address"
+    )
+    truenas_group.add_argument(
+        "--truenas-user", 
+        default="root",
+        help="TrueNAS SSH username"
+    )
+    truenas_group.add_argument(
+        "--private-key",
+        help="Path to SSH private key for TrueNAS authentication"
+    )
+    truenas_group.add_argument(
+        "--skip-upload", 
+        action="store_true",
+        help="Skip uploading to TrueNAS"
+    )
+    
+    # General options
+    general_group = parser.add_argument_group('General Options')
+    general_group.add_argument(
+        "--output-dir",
+        help="Custom output directory (default: temporary directory)"
+    )
+    general_group.add_argument(
+        "--verbose", "-v", 
+        action="store_true",
+        help="Enable verbose logging"
+    )
+    general_group.add_argument(
+        "--dry-run", 
+        action="store_true",
+        help="Validate configuration without generating ISO"
+    )
+    
+    return parser.parse_args()
+
+
+def load_values_from_file(values_file: str) -> Optional[Dict[str, Any]]:
+    """
+    Load OpenShift installation values from a YAML file.
+
+    Args:
+        values_file: Path to the YAML values file
+
+    Returns:
+        Dictionary of values or None if loading failed
+    """
     try:
         with open(values_file, 'r') as f:
             values = yaml.safe_load(f)
+            
+        # Process secret references
+        values = process_references(values)
         return values
     except Exception as e:
-        print(f"Error loading values file: {e}")
+        logging.error(f"Error loading values file: {e}")
         return None
 
-def upload_to_truenas(iso_path, version, truenas_ip, username, password=None, private_key=None):
-    """Upload the ISO to TrueNAS using SCP"""
+
+def get_ssh_key(ssh_key_path: Optional[str] = None) -> Optional[str]:
+    """
+    Get SSH public key content from file.
+
+    Args:
+        ssh_key_path: Path to SSH public key file (optional)
+
+    Returns:
+        SSH key content or None if not found
+    """
+    # If path is provided, try to read it
+    if ssh_key_path:
+        if os.path.exists(ssh_key_path):
+            with open(ssh_key_path, 'r') as f:
+                return f.read().strip()
+        else:
+            logging.error(f"SSH key file not found at {ssh_key_path}")
+            return None
+    
+    # Try default location
+    default_key_path = os.path.expanduser("~/.ssh/id_rsa.pub")
+    if os.path.exists(default_key_path):
+        with open(default_key_path, 'r') as f:
+            logging.info(f"Using SSH key from {default_key_path}")
+            return f.read().strip()
+    
+    logging.error("No SSH key provided and ~/.ssh/id_rsa.pub not found")
+    return None
+
+
+def get_pull_secret(pull_secret_path: Optional[str] = None) -> Optional[str]:
+    """
+    Get OpenShift pull secret content.
+
+    Args:
+        pull_secret_path: Path to pull secret file (optional)
+
+    Returns:
+        Pull secret content or None if not found
+    """
+    # If path is provided, try to read it
+    if pull_secret_path:
+        if os.path.exists(pull_secret_path):
+            with open(pull_secret_path, 'r') as f:
+                return f.read().strip()
+        else:
+            logging.error(f"Pull secret file not found at {pull_secret_path}")
+            return None
+    
+    # Try default location
+    default_pull_secret_path = os.path.expanduser("~/.openshift/pull-secret")
+    if os.path.exists(default_pull_secret_path):
+        with open(default_pull_secret_path, 'r') as f:
+            logging.info(f"Using pull secret from {default_pull_secret_path}")
+            return f.read().strip()
+    
+    # Try to get from secrets provider
+    pull_secret = get_secret('openshift/pull-secret')
+    if pull_secret:
+        logging.info("Using pull secret from secrets provider")
+        return pull_secret
+    
+    logging.error("No pull secret provided and none found in default locations")
+    return None
+
+
+def upload_to_truenas(iso_path: str, version: str, truenas_ip: str, username: str, private_key: Optional[str] = None) -> bool:
+    """
+    Upload the ISO to TrueNAS using SCP.
+
+    Args:
+        iso_path: Path to the ISO file
+        version: OpenShift version
+        truenas_ip: TrueNAS server IP address
+        username: TrueNAS SSH username
+        private_key: Path to SSH private key (optional)
+
+    Returns:
+        True if upload successful, False otherwise
+    """
     # Format version for path
     version_path = version.replace('x', '0')  # Handle cases like 4.18.x
     if len(version_path.split('.')) < 3:
@@ -342,7 +253,7 @@ def upload_to_truenas(iso_path, version, truenas_ip, username, password=None, pr
     # Construct destination path
     remote_path = f"{username}@{truenas_ip}:/mnt/tank/openshift_isos/{version_path.split('.')[0]}.{version_path.split('.')[1]}/agent.x86_64.iso"
     
-    print(f"Uploading ISO to TrueNAS at {remote_path}...")
+    logging.info(f"Uploading ISO to TrueNAS at {remote_path}...")
     
     scp_command = ["scp"]
     
@@ -356,188 +267,205 @@ def upload_to_truenas(iso_path, version, truenas_ip, username, password=None, pr
     try:
         # Run the SCP command
         subprocess.run(scp_command, check=True)
-        print("ISO uploaded successfully")
+        logging.info("ISO uploaded successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"Error uploading ISO: {e}")
+        logging.error(f"Error uploading ISO: {e}")
         return False
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate OpenShift agent-based ISO and upload to TrueNAS")
-    parser.add_argument("--version", default="4.18", help="OpenShift version (e.g., 4.18 or 4.18.0)")
-    parser.add_argument("--domain", default="example.com", help="Base domain for the cluster")
-    parser.add_argument("--rendezvous-ip", required=True, help="Rendezvous IP address (primary node)")
-    parser.add_argument("--truenas-ip", default="192.168.2.245", help="TrueNAS IP address")
-    parser.add_argument("--truenas-user", default="root", help="TrueNAS SSH username")
-    parser.add_argument("--private-key", help="Path to SSH private key for TrueNAS authentication")
-    parser.add_argument("--pull-secret", help="Pull secret for OpenShift. If not provided, will prompt.")
-    parser.add_argument("--ssh-key", help="SSH public key for OpenShift. If not provided, will use ~/.ssh/id_rsa.pub")
-    parser.add_argument("--skip-upload", action="store_true", help="Skip uploading to TrueNAS")
-    parser.add_argument("--output-dir", help="Custom output directory (default: temporary directory)")
-    parser.add_argument("--values-file", help="Path to YAML file with OpenShift installation values")
-    
-    args = parser.parse_args()
-    
-    # Use provided output directory or create a temporary one
-    if args.output_dir:
-        output_dir = args.output_dir
-        os.makedirs(output_dir, exist_ok=True)
-        should_cleanup = False
+
+def create_openshift_config(args: argparse.Namespace, values: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Create OpenShift component configuration from command line arguments and/or values file.
+
+    Args:
+        args: Parsed command line arguments
+        values: Values loaded from YAML file (optional)
+
+    Returns:
+        Configuration dictionary for OpenShiftComponent
+    """
+    # Get basic configuration values either from values file or command line
+    if values:
+        domain = values.get('baseDomain', args.domain)
+        rendezvous_ip = values.get('sno', {}).get('nodeIP', args.rendezvous_ip)
+        pull_secret = values.get('pullSecret')
+        ssh_key = values.get('sshKey')
     else:
-        output_dir = tempfile.mkdtemp()
-        should_cleanup = True
+        domain = args.domain
+        rendezvous_ip = args.rendezvous_ip
+        pull_secret = None
+        ssh_key = None
     
-    print(f"Using output directory: {output_dir}")
+    # If pull_secret and ssh_key weren't in the values file, get them from command line or defaults
+    if not pull_secret:
+        pull_secret = get_pull_secret(args.pull_secret)
     
+    if not ssh_key:
+        ssh_key = get_ssh_key(args.ssh_key)
+    
+    # Set up configuration
+    config = {
+        'openshift_version': args.version,
+        'domain': domain,
+        'rendezvous_ip': rendezvous_ip,
+        'node_ip': rendezvous_ip,  # Use rendezvous IP as node IP by default
+        'pull_secret_content': pull_secret,
+        'ssh_key_content': ssh_key,
+        'output_dir': args.output_dir or None,
+        'component_id': 'openshift-iso-component',
+        'dry_run': args.dry_run
+    }
+    
+    # If values file was provided, store the complete configuration
+    if values:
+        config['values_file_content'] = values
+        
+        # Extract additional configuration from values file
+        if 'sno' in values:
+            sno_config = values.get('sno', {})
+            # Use hostname if specified
+            if 'hostname' in sno_config:
+                config['hostname'] = sno_config['hostname']
+            
+            # Use server_id if specified
+            if 'server_id' in sno_config:
+                config['server_id'] = sno_config['server_id']
+            
+            # Use installation disk if specified
+            if 'installationDisk' in sno_config:
+                config['installation_disk'] = sno_config['installationDisk']
+            elif 'bootstrapInPlace' in values and 'installationDisk' in values['bootstrapInPlace']:
+                config['installation_disk'] = values['bootstrapInPlace']['installationDisk']
+    
+    return config
+
+
+def run_workflow(args: argparse.Namespace, logger: logging.Logger) -> int:
+    """
+    Run the main workflow with proper error handling.
+
+    Args:
+        args: Command line arguments
+        logger: Logger instance
+
+    Returns:
+        Exit code (0 for success, non-zero for failure)
+    """
     try:
-        # Check if values file is provided
+        # Load values from file if specified
+        values = None
         if args.values_file:
-            print(f"Loading installation values from {args.values_file}")
+            logger.info(f"Loading installation values from {args.values_file}")
             values = load_values_from_file(args.values_file)
             if not values:
-                return 1
-                
-            # Extract values from the loaded file
-            domain = values.get('baseDomain', args.domain)
-            rendezvous_ip = values.get('sno', {}).get('nodeIP', args.rendezvous_ip)
-            
-            if not rendezvous_ip:
-                print("Error: No rendezvous IP found in values file and none provided via command line")
-                return 1
-        else:
-            # Use command line arguments
-            domain = args.domain
-            rendezvous_ip = args.rendezvous_ip
-        
-        # Get SSH key if not provided
-        ssh_key_path = args.ssh_key
-        if ssh_key_path:
-            # Read the SSH key file
-            if os.path.exists(ssh_key_path):
-                with open(ssh_key_path, 'r') as f:
-                    ssh_key = f.read().strip()
-            else:
-                print(f"Error: SSH key file not found at {ssh_key_path}")
-                return 1
-        else:
-            # Try default SSH key path
-            default_key_path = os.path.expanduser("~/.ssh/id_rsa.pub")
-            if os.path.exists(default_key_path):
-                with open(default_key_path, 'r') as f:
-                    ssh_key = f.read().strip()
-            else:
-                print("No SSH key provided and ~/.ssh/id_rsa.pub not found.")
-                print("Please provide an SSH key with --ssh-key or generate one with ssh-keygen.")
+                logger.error("Failed to load values file")
                 return 1
         
-        # Get pull secret if not provided
-        pull_secret_path = args.pull_secret
-        if pull_secret_path:
-            # Read the pull secret file
-            if os.path.exists(pull_secret_path):
-                with open(pull_secret_path, 'r') as f:
-                    pull_secret = f.read().strip()
-            else:
-                print(f"Error: Pull secret file not found at {pull_secret_path}")
-                return 1
-        else:
-            # Check for pull secret in ~/.openshift/pull-secret
-            default_pull_secret_path = os.path.expanduser("~/.openshift/pull-secret")
-            if os.path.exists(default_pull_secret_path):
-                with open(default_pull_secret_path, 'r') as f:
-                    pull_secret = f.read().strip()
-                print(f"Using pull secret found at {default_pull_secret_path}")
-            else:
-                print("Please enter your OpenShift pull secret (paste and press Enter, then Ctrl+D):")
-                pull_secret = sys.stdin.read().strip()
-                
-            if not pull_secret:
-                print("Pull secret is required. Get it from https://console.redhat.com/openshift/install/pull-secret")
-                return 1
+        # Create OpenShift component configuration
+        openshift_config = create_openshift_config(args, values)
         
-        # Download the OpenShift installer
-        if not download_openshift_installer(args.version, output_dir):
+        # Validate required configuration
+        if not openshift_config.get('pull_secret_content'):
+            logger.error("Pull secret is required. Get it from https://console.redhat.com/openshift/install/pull-secret")
             return 1
         
-        # Create the configuration files
-        if args.values_file:
-            # Create configurations based on values file
-            values_copy = yaml.safe_load(yaml.dump(values))  # Create a deep copy
-            
-            # Process secret references first
-            values_copy = process_references(values_copy)
-            
-            # If the secretReferences section was processed, the pullSecret and sshKey
-            # should already be in the values_copy. If not, add them from the arguments.
-            if 'pullSecret' not in values_copy:
-                values_copy['pullSecret'] = pull_secret
-            if 'sshKey' not in values_copy:
-                values_copy['sshKey'] = ssh_key
-            
-            # Extract installation disk information for bootstrapInPlace
-            installation_disk = values_copy.get('bootstrapInPlace', {}).get('installationDisk', None)
-            
-            # For safety, store the install config on TrueNAS if possible
-            if not args.skip_upload:
-                try:
-                    # Create a sanitized copy without secrets for logging
-                    safe_copy = yaml.safe_load(yaml.dump(values_copy))
-                    if 'pullSecret' in safe_copy:
-                        safe_copy['pullSecret'] = '***REDACTED***'
-                    if 'sshKey' in safe_copy:
-                        safe_copy['sshKey'] = '***REDACTED***'
-                        
-                    config_path = f"openshift_configs/{args.version}/install-config.yaml"
-                    if put_secret(config_path, yaml.dump(values_copy, sort_keys=False)):
-                        print(f"Backed up configuration to secrets storage at {config_path}")
-                except Exception as e:
-                    print(f"Warning: Could not back up configuration to secrets storage: {e}")
-            
-            # Create install-config.yaml with proper Day 1 configuration
-            # We're using our string-based method instead of yaml.dump to avoid formatting issues
-            create_install_config(output_dir, args.version, domain, pull_secret, ssh_key, installation_disk)
-            print(f"Created install-config.yaml from values file for OpenShift {args.version}")
-            
-            # Create agent config using values - with bootstrapInPlace moved to install-config.yaml
-            create_agent_config(output_dir, values_copy, rendezvous_ip)
-        else:
-            # Create configurations from command line arguments
-            if not create_install_config(output_dir, args.version, domain, pull_secret, ssh_key):
-                return 1
-            
-            if not create_agent_config(output_dir, None, args.rendezvous_ip):
-                return 1
-        
-        # Generate the ISO
-        iso_path = generate_iso(output_dir, args.version)
-        if not iso_path:
+        if not openshift_config.get('ssh_key_content'):
+            logger.error("SSH key is required. Generate one with ssh-keygen if needed.")
             return 1
+        
+        # Create component
+        logger.info("Initializing OpenShift component...")
+        openshift_component = OpenShiftComponent(openshift_config, logger)
+        
+        # Discovery phase
+        logger.info("Running discovery phase...")
+        discovery_results = openshift_component.discover()
+        
+        # Check if we have everything we need
+        if not discovery_results.get('pull_secret_available', False):
+            logger.error("Pull secret verification failed")
+            return 1
+        
+        if not discovery_results.get('ssh_key_available', False):
+            logger.error("SSH key verification failed")
+            return 1
+        
+        logger.info(f"OpenShift discovery completed successfully")
+        logger.info(f"Using OpenShift version: {args.version}")
+        
+        # Process phase (generate ISO)
+        logger.info("Running processing phase (generating ISO)...")
+        process_results = openshift_component.process()
+        
+        # Check if ISO was generated
+        if not process_results.get('iso_generated', False):
+            logger.error("Failed to generate ISO")
+            return 1
+        
+        iso_path = process_results.get('iso_path')
+        logger.info(f"Successfully generated ISO at: {iso_path}")
         
         # Upload to TrueNAS if not skipped
-        if not args.skip_upload:
+        if not args.skip_upload and iso_path:
             if not upload_to_truenas(
-                iso_path, 
-                args.version, 
-                args.truenas_ip, 
-                args.truenas_user, 
-                private_key=args.private_key
+                iso_path,
+                args.version,
+                args.truenas_ip,
+                args.truenas_user,
+                args.private_key
             ):
+                logger.error("Failed to upload ISO to TrueNAS")
                 return 1
+            
+            # Print access URL
+            version_parts = args.version.split('.')
+            major_minor = f"{version_parts[0]}.{version_parts[1]}"
+            logger.info(f"ISO can be accessed via HTTP at: http://{args.truenas_ip}/openshift_isos/{major_minor}/agent.x86_64.iso")
         
-        print("\nISO generation completed successfully!")
-        print(f"ISO file: {iso_path}")
+        # Housekeeping phase
+        logger.info("Running housekeeping phase...")
+        housekeeping_results = openshift_component.housekeep()
         
-        if not args.skip_upload:
-            print(f"The ISO has been uploaded to TrueNAS at {args.truenas_ip}")
-            print(f"It can be accessed via HTTP at: http://{args.truenas_ip}/openshift_isos/{args.version}/agent.x86_64.iso")
+        # If we're keeping the output directory, let the user know
+        if args.output_dir:
+            logger.info(f"ISO and configuration files are in: {args.output_dir}")
         
+        logger.info("OpenShift ISO generation completed successfully")
         return 0
+        
+    except Exception as e:
+        logger.error(f"Error generating OpenShift ISO: {str(e)}")
+        if logger.level == logging.DEBUG:
+            import traceback
+            logger.debug(traceback.format_exc())
+        return 1
+
+
+def main() -> int:
+    """
+    Main entry point with error handling.
+
+    Returns:
+        Exit code (0 for success, non-zero for failure)
+    """
+    args = parse_arguments()
+    logger = setup_logging(args.verbose)
     
-    finally:
-        # Clean up temporary directory if we created one
-        if should_cleanup:
-            print(f"Cleaning up temporary directory: {output_dir}")
-            shutil.rmtree(output_dir, ignore_errors=True)
+    # Create output directory if specified
+    if args.output_dir:
+        os.makedirs(args.output_dir, exist_ok=True)
+        logger.info(f"Using output directory: {args.output_dir}")
+    
+    try:
+        return run_workflow(args, logger)
+    except Exception as e:
+        logger.error(f"Unhandled exception: {e}")
+        if args.verbose:
+            import traceback
+            logger.error(traceback.format_exc())
+        return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
