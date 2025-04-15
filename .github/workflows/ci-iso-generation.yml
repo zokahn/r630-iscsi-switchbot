@@ -24,7 +24,7 @@ jobs:
   prepare-iso-generation:
     runs-on: [self-hosted]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Validate inputs and environment
         id: validate
         run: |
@@ -74,7 +74,7 @@ jobs:
         version: ${{ fromJson(needs.prepare-iso-generation.outputs.versions_json) }}
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v4

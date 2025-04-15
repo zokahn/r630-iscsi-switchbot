@@ -20,7 +20,7 @@ jobs:
   prepare-environment:
     runs-on: [self-hosted]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -70,7 +70,7 @@ jobs:
         component: ${{ fromJson(needs.prepare-environment.outputs.components_json) }}
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -119,7 +119,7 @@ jobs:
     needs: parallel-integration-tests
     runs-on: [self-hosted]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:

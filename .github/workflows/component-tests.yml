@@ -35,7 +35,7 @@ jobs:
           - /tmp/data:/data
         
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -84,7 +84,7 @@ jobs:
           --name vault-server
           
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -228,7 +228,7 @@ jobs:
           --cap-add=IPC_LOCK
       
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v4
