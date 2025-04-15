@@ -32,7 +32,7 @@ jobs:
       any_py_changes: ${{ steps.filter.outputs.any_py_changes }}
       
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for proper diff detection
         
@@ -88,7 +88,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.any_py_changes == 'true'
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -204,7 +204,7 @@ jobs:
         python-version: ['3.12']
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -254,7 +254,7 @@ jobs:
         python-version: ['3.12']
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -304,7 +304,7 @@ jobs:
         python-version: ['3.12']
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
