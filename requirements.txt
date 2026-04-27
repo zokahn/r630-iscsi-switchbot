@@ -23,7 +23,7 @@ pytest-xdist>=3.5.0  # Parallel test execution for Python 3.12
 moto>=4.2.0  # For testing S3
 
 # New tools for CI/CD modernization
-bandit>=1.7.6  # Security scanning
+bandit>=1.9.4  # Security scanning
 types-requests>=2.31.0.2  # Type stubs for requests
 mypy>=1.8.0  # Static type checking
 pylint>=3.0.3  # Code linting
