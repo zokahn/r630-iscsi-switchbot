@@ -26,5 +26,5 @@ moto>=4.2.0  # For testing S3
 bandit>=1.7.6  # Security scanning
 types-requests>=2.31.0.2  # Type stubs for requests
 mypy>=1.8.0  # Static type checking
-pylint>=3.0.3  # Code linting
+pylint>=4.0.5  # Code linting
 safety>=2.3.5  # Dependency vulnerability scanning
